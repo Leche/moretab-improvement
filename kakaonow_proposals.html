@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>카카오 나우 섹션 UX 개선 제안 — 시안 비교</title>
+<style>
+  :root {
+    --ink-900: #0f1115;
+    --ink-700: #2a2f3a;
+    --ink-500: #525a6b;
+    --ink-400: #7a8296;
+    --ink-300: #a8b0c0;
+    --line-soft: #e6e9ef;
+    --line: #d7dbe3;
+    --bg-page: #f4f5f8;
+    --bg-card: #ffffff;
+    --accent: #1456f1;
+    --warn: #d6463a;
+    --ok: #1b9f5f;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg-page); color: var(--ink-900);
+    font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Pretendard', 'Segoe UI', sans-serif;
+    -webkit-font-smoothing: antialiased; line-height: 1.5; }
+  .page { max-width: 1600px; margin: 0 auto; padding: 56px 40px 120px; }
+
+  /* --- Header --- */
+  .eyebrow { font-size: 12px; font-weight: 600; letter-spacing: 0.12em; color: var(--ink-400); text-transform: uppercase; }
+  h1 { font-size: 32px; font-weight: 700; margin: 8px 0 8px; letter-spacing: -0.02em; }
+  .subtitle { font-size: 16px; color: var(--ink-500); margin: 0 0 40px; max-width: 780px; }
+
+  /* --- Diagnosis section --- */
+  .diagnosis {
+    background: var(--bg-card); border: 1px solid var(--line-soft); border-radius: 16px;
+    padding: 28px 32px; margin-bottom: 56px;
+  }
+  .diagnosis h2 { font-size: 18px; margin: 0 0 16px; letter-spacing: -0.01em; }
+  .diag-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 20px; }
+  .diag-item { border-left: 2px solid var(--warn); padding: 2px 0 2px 14px; }
+  .diag-item .label { font-size: 12px; font-weight: 600; color: var(--warn); margin-bottom: 4px; letter-spacing: 0.02em; }
+  .diag-item .text { font-size: 13px; color: var(--ink-700); line-height: 1.55; }
+
+  /* --- Theory chips --- */
+  .theory-row { margin-top: 20px; display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    font-size: 11.5px; color: var(--ink-500); background: #eef0f6; border-radius: 999px;
+    padding: 5px 10px; font-weight: 500;
+  }
+
+  /* --- Proposal row --- */
+  .proposals {
+    display: grid; grid-template-columns: repeat(5, 1fr); gap: 28px;
+    align-items: start;
+  }
+  @media (max-width: 1400px) { .proposals { grid-template-columns: repeat(3, 1fr); } }
+  @media (max-width: 900px)  { .proposals { grid-template-columns: 1fr; } }
+
+  .proposal { display: flex; flex-direction: column; gap: 16px; }
+  .proposal-head { display: flex; align-items: baseline; gap: 10px; }
+  .proposal-tag {
+    font-size: 11px; font-weight: 700; letter-spacing: 0.08em; padding: 3px 8px;
+    border-radius: 4px; background: #e9edf7; color: var(--accent);
+  }
+  .proposal-tag.asis { background: #fbe8e6; color: var(--warn); }
+  .proposal-tag.rec  { background: #e3f6ea; color: var(--ok); }
+  .proposal-title { font-size: 16px; font-weight: 700; letter-spacing: -0.01em; margin: 0; }
+
+  /* --- Mobile frame --- */
+  .frame {
+    width: 100%; max-width: 361px; margin: 0 auto;
+    background: #fff; border-radius: 20px; border: 1px solid var(--line);
+    overflow: hidden; box-shadow: 0 6px 24px rgba(18, 26, 50, 0.06);
+  }
+  .frame-chrome {
+    height: 28px; background: #fafbfc; border-bottom: 1px solid var(--line-soft);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px; color: var(--ink-400); letter-spacing: 0.04em;
+  }
+  .frame-body { padding: 20px 16px 24px; background: #fff; }
+  .home-subtitle {
+    font-size: 15px; font-weight: 700; color: #191919; margin: 0 0 12px;
+    letter-spacing: -0.01em;
+  }
+  .home-subtitle-row {
+    display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;
+  }
+  .home-subtitle-row .home-subtitle { margin: 0; }
+  .more-link { font-size: 12px; color: var(--ink-400); text-decoration: none; }
+
+  /* === AS-IS: 2x3 grid (current) === */
+  .kn-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 11px;
+  }
+  .kn-card {
+    position: relative; aspect-ratio: 175/204; border-radius: 12px; overflow: hidden;
+    background-size: cover; background-position: center;
+  }
+  .kn-card::after {
+    content: ''; position: absolute; inset: 0;
+    border: 0.5px solid rgba(0,0,0,0.08); border-radius: 12px; pointer-events: none;
+  }
+
+  /* === 시안 A: Hero + dots === */
+  .kn-hero {
+    position: relative; width: 100%; aspect-ratio: 329/160;
+    border-radius: 14px; overflow: hidden;
+    background-size: cover; background-position: center;
+  }
+  .kn-hero::after {
+    content: ''; position: absolute; inset: 0;
+    border: 0.5px solid rgba(0,0,0,0.08); border-radius: 14px; pointer-events: none;
+  }
+  .kn-dots {
+    display: flex; gap: 5px; justify-content: center; margin-top: 10px;
+  }
+  .kn-dots span { width: 5px; height: 5px; border-radius: 50%; background: #d7dbe3; }
+  .kn-dots span.on { background: #191919; width: 14px; border-radius: 3px; }
+
+  /* === 시안 B: Peek carousel === */
+  .kn-strip { position: relative; margin: 0 -16px; padding: 0 16px 0 16px; }
+  .kn-strip-track {
+    display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory;
+    padding-bottom: 4px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .kn-strip-track::-webkit-scrollbar { display: none; }
+  .kn-strip-card {
+    flex: 0 0 auto; width: 132px; aspect-ratio: 132/160;
+    border-radius: 12px; overflow: hidden; position: relative;
+    scroll-snap-align: start;
+    background-size: cover; background-position: center;
+  }
+  .kn-strip-card::after {
+    content: ''; position: absolute; inset: 0;
+    border: 0.5px solid rgba(0,0,0,0.08); border-radius: 12px; pointer-events: none;
+  }
+  .kn-bar {
+    margin-top: 12px; height: 2px; background: #eceef2; border-radius: 2px; position: relative; overflow: hidden;
+  }
+  .kn-bar::after {
+    content: ''; position: absolute; left: 0; top: 0; bottom: 0; width: 28%; background: #191919; border-radius: 2px;
+  }
+
+  /* === 시안 C: Featured + list === */
+  .kn-featured {
+    position: relative; width: 100%; aspect-ratio: 329/148;
+    border-radius: 14px; overflow: hidden;
+    background-size: cover; background-position: center;
+    margin-bottom: 14px;
+  }
+  .kn-featured::after {
+    content: ''; position: absolute; inset: 0;
+    border: 0.5px solid rgba(0,0,0,0.08); border-radius: 14px; pointer-events: none;
+  }
+  .kn-list { list-style: none; padding: 0; margin: 0; }
+  .kn-item {
+    display: flex; align-items: center; gap: 12px; padding: 10px 0;
+    border-bottom: 0.5px solid #eff1f5;
+  }
+  .kn-item:last-child { border-bottom: 0; }
+  .kn-thumb {
+    width: 44px; height: 44px; border-radius: 10px; flex: none;
+    background-size: cover; background-position: center; position: relative;
+  }
+  .kn-thumb::after {
+    content: ''; position: absolute; inset: 0;
+    border: 0.5px solid rgba(0,0,0,0.06); border-radius: 10px;
+  }
+  .kn-item-text { flex: 1; min-width: 0; }
+  .kn-item-title {
+    font-size: 14px; color: #191919; font-weight: 500; margin: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: -0.01em;
+  }
+  .kn-item-sub {
+    font-size: 12px; color: #7a8296; margin-top: 2px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  /* === 시안 D: Normalized 2x3 === */
+  .kn-norm-grid {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px;
+  }
+  .kn-norm-card {
+    position: relative; aspect-ratio: 160/128;
+    border-radius: 12px; overflow: hidden; background: #fff;
+    border: 0.5px solid rgba(0,0,0,0.08);
+    display: flex; flex-direction: column;
+  }
+  .kn-norm-top {
+    height: 40px; padding: 8px 10px; display: flex; align-items: center; justify-content: flex-end;
+  }
+  .kn-norm-emoji {
+    width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
+  }
+  .kn-norm-body {
+    padding: 2px 12px 12px; flex: 1; display: flex; flex-direction: column; justify-content: flex-end;
+  }
+  .kn-norm-title {
+    font-size: 13px; font-weight: 600; color: #191919; margin: 0 0 2px;
+    line-height: 1.3; letter-spacing: -0.01em;
+  }
+  .kn-norm-sub {
+    font-size: 11px; color: #7a8296; margin: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  /* --- Caption --- */
+  .caption { padding: 0 2px; }
+  .rationale-label {
+    font-size: 11px; font-weight: 700; color: var(--ink-500); letter-spacing: 0.06em;
+    text-transform: uppercase; margin-bottom: 6px;
+  }
+  .rationale {
+    font-size: 13px; color: var(--ink-700); line-height: 1.6; margin: 0 0 14px;
+  }
+  .pros-cons { display: grid; grid-template-columns: 1fr; gap: 8px; font-size: 12.5px; }
+  .pros-cons li {
+    list-style: none; padding-left: 18px; position: relative;
+    color: var(--ink-700); line-height: 1.55;
+  }
+  .pros-cons li.pro::before  { content: '+'; position: absolute; left: 0; color: var(--ok);   font-weight: 700; }
+  .pros-cons li.con::before  { content: '−'; position: absolute; left: 0; color: var(--warn); font-weight: 700; }
+  .pros-cons li.pol::before  { content: '◎'; position: absolute; left: 0; color: var(--accent); font-weight: 700; font-size: 10px; top: 4px; }
+  .pros-cons ul { padding: 0; margin: 0; }
+
+  /* --- Footer recommendation --- */
+  .recommend {
+    margin-top: 72px; background: #111418; color: #f2f4f8; border-radius: 20px;
+    padding: 36px 40px; display: grid; grid-template-columns: 1fr 1fr; gap: 40px;
+  }
+  @media (max-width: 900px) { .recommend { grid-template-columns: 1fr; padding: 28px; } }
+  .recommend h2 { font-size: 20px; margin: 0 0 14px; letter-spacing: -0.01em; }
+  .recommend p { font-size: 14px; color: #c8cedb; line-height: 1.7; margin: 0 0 12px; }
+  .recommend .pick {
+    background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px; padding: 22px 24px;
+  }
+  .recommend .pick h3 { margin: 0 0 10px; font-size: 15px; color: #fff; }
+  .recommend .pick ol { padding-left: 18px; margin: 0; font-size: 13.5px; color: #c8cedb; line-height: 1.8; }
+  .recommend .pick strong { color: #fff; }
+
+  .small-divider { height: 1px; background: var(--line-soft); margin: 40px 0 32px; }
+
+  /* Subtle numbering */
+  .proposal-no {
+    font-size: 11px; color: var(--ink-400); font-weight: 600; letter-spacing: 0.08em;
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="eyebrow">MORE TAB · KAKAO NOW SECTION</div>
+  <h1>카카오 나우 섹션 UX 개선 제안</h1>
+  <p class="subtitle">
+    "배너 수를 2 → 4 → 6으로 늘리면 노출 기회도 늘어난다"는 조직 내 직관은 사용자 행동과 반대 방향입니다.
+    이 문서는 현재 2×3 그리드의 구조적 문제를 진단하고, 정치적 현실(6개 슬롯 보존 필요)까지 고려한 4가지 시안을 비교합니다.
+  </p>
+
+  <!-- ======= DIAGNOSIS ======= -->
+  <section class="diagnosis">
+    <h2>문제 진단</h2>
+    <div class="diag-grid">
+      <div class="diag-item">
+        <div class="label">01 · SPACE GREED</div>
+        <div class="text">2×3 그리드(카드 aspect 175:204)가 뷰포트 1 스크린의 약 45%를 점유. 더보기탭의 "빠른 진입·탐색" 목적과 충돌.</div>
+      </div>
+      <div class="diag-item">
+        <div class="label">02 · VISUAL NOISE</div>
+        <div class="text">각 배너가 배경색·타이포·일러스트 크기를 자유롭게 사용 → 6개가 한 화면에서 경쟁. 개별 가독성은 물론 <b>섹션 전체가 "광고존"으로 인지</b>되어 건너뛰게 됨.</div>
+      </div>
+      <div class="diag-item">
+        <div class="label">03 · CTR DILUTION</div>
+        <div class="text">6개 선택지 중 1개 클릭. 이론상 CTR 상한이 1/6로 분산. "가끔 특정 소재에서 튄다"는 것은 <b>포맷이 아니라 콘텐츠 자체</b>가 드라이버임을 시사.</div>
+      </div>
+      <div class="diag-item">
+        <div class="label">04 · EGO-DRIVEN IA</div>
+        <div class="text">사용자 가치가 아닌 내부 협상으로 슬롯 수가 정해짐. 지표 하락 추세는 이 정책의 외부 검증 실패 신호.</div>
+      </div>
+    </div>
+    <div class="theory-row">
+      <span class="chip">Banner Blindness (Nielsen)</span>
+      <span class="chip">Hick's Law</span>
+      <span class="chip">Information Scent</span>
+      <span class="chip">Law of Common Region</span>
+      <span class="chip">Peak-End Rule</span>
+      <span class="chip">Attention Economy</span>
+      <span class="chip">Progressive Disclosure</span>
+    </div>
+  </section>
+
+  <!-- ======= PROPOSALS ======= -->
+  <section class="proposals">
+
+    <!-- AS-IS -->
+    <div class="proposal">
+      <div class="proposal-head">
+        <span class="proposal-tag asis">AS-IS</span>
+        <span class="proposal-no">00</span>
+      </div>
+      <h3 class="proposal-title">현재 — 2×3 풀 그리드</h3>
+      <div class="frame">
+        <div class="frame-chrome">더보기 · 카카오 나우 영역</div>
+        <div class="frame-body">
+          <div class="home-subtitle">카카오 나우</div>
+          <div class="kn-grid">
+            <div class="kn-card" style="background-image:url('images/home/kakaonow_1.png')"></div>
+            <div class="kn-card" style="background-image:url('images/home/kakaonow_2.png')"></div>
+            <div class="kn-card" style="background-image:url('images/home/kakaonow_3.png')"></div>
+            <div class="kn-card" style="background-image:url('images/home/kakaonow_4.png')"></div>
+            <div class="kn-card" style="background-image:url('images/home/kakaonow_5.png')"></div>
+            <div class="kn-card" style="background-image:url('images/home/kakaonow_6.png')"></div>
+          </div>
+        </div>
+      </div>
+      <div class="caption">
+        <div class="rationale-label">상태</div>
+        <p class="rationale">6개 슬롯 동등 노출. 세로 공간 과점유, 소재 디자인 비일관, 선택지 과다.</p>
+        <ul class="pros-cons">
+          <li class="con">세로 공간 과점유 (뷰포트 약 45%)</li>
+          <li class="con">배너 간 위계 없음 → 모두 무시되는 banner blindness</li>
+          <li class="con">CTR 분산 / 지표 하락 추세</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 시안 A: Hero + rotation -->
+    <div class="proposal">
+      <div class="proposal-head">
+        <span class="proposal-tag">시안 A</span>
+        <span class="proposal-no">01</span>
+      </div>
+      <h3 class="proposal-title">싱글 히어로 + 자동 롤링</h3>
+      <div class="frame">
+        <div class="frame-chrome">시안 A · 히어로 롤링</div>
+        <div class="frame-body">
+          <div class="home-subtitle">카카오 나우</div>
+          <div class="kn-hero" style="background-image:url('images/home/kakaonow_2.png'); background-position: center 30%;"></div>
+          <div class="kn-dots">
+            <span></span><span class="on"></span><span></span><span></span><span></span><span></span>
+          </div>
+        </div>
+      </div>
+      <div class="caption">
+        <div class="rationale-label">UX 근거 · Peak-End / Attention</div>
+        <p class="rationale">한 순간 한 개의 배너만 집중 노출 → 주의 경제(attention economy) 준수. 자동 롤링 5초 + 스와이프로 6개 모두 노출 기회 보장. <b>원래 포맷으로의 회귀 + 현대화</b>.</p>
+        <ul class="pros-cons">
+          <li class="pro">세로 공간 약 70% 축소 (1 영역만 표시)</li>
+          <li class="pro">각 배너가 최대 주목도 확보 → 소재 품질이 CTR에 직결</li>
+          <li class="con">한 스크린에 동시 노출은 1개 → 일부 배너는 롤링 전 이탈</li>
+          <li class="pol">"6개 슬롯 모두 보존, 순차 순환" 프레이밍으로 내부 설득 가능</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 시안 B: Peek carousel  (RECOMMENDED) -->
+    <div class="proposal">
+      <div class="proposal-head">
+        <span class="proposal-tag rec">시안 B · 추천</span>
+        <span class="proposal-no">02</span>
+      </div>
+      <h3 class="proposal-title">가로 스와이프 피크 캐러셀</h3>
+      <div class="frame">
+        <div class="frame-chrome">시안 B · 피크 스트립</div>
+        <div class="frame-body">
+          <div class="home-subtitle">카카오 나우</div>
+          <div class="kn-strip">
+            <div class="kn-strip-track">
+              <div class="kn-strip-card" style="background-image:url('images/home/kakaonow_1.png')"></div>
+              <div class="kn-strip-card" style="background-image:url('images/home/kakaonow_2.png')"></div>
+              <div class="kn-strip-card" style="background-image:url('images/home/kakaonow_3.png')"></div>
+              <div class="kn-strip-card" style="background-image:url('images/home/kakaonow_4.png')"></div>
+              <div class="kn-strip-card" style="background-image:url('images/home/kakaonow_5.png')"></div>
+              <div class="kn-strip-card" style="background-image:url('images/home/kakaonow_6.png')"></div>
+            </div>
+          </div>
+          <div class="kn-bar"></div>
+        </div>
+      </div>
+      <div class="caption">
+        <div class="rationale-label">UX 근거 · Progressive Disclosure</div>
+        <p class="rationale">첫 화면에서 2.5개 카드 peek으로 "더 있음"을 암시 → <b>스와이프 어포던스</b> 확보. 슬롯 6개 보존하면서 세로 공간 1/3로 축소. Netflix·Toss·Spotify 등 친숙한 row 패턴.</p>
+        <ul class="pros-cons">
+          <li class="pro">세로 공간 약 65% 축소, 6개 즉시 스캔 가능</li>
+          <li class="pro">사용자가 <b>능동적</b>으로 탐색 → banner blindness 완화</li>
+          <li class="pro">배너 소재 품질 차이가 노출 순서로 조정 가능</li>
+          <li class="con">후순위 카드는 스와이프 없으면 노출 0</li>
+          <li class="pol">"6개 전부 보임 + 공간 절약" 양쪽 요구 동시 충족</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 시안 C: Featured + list -->
+    <div class="proposal">
+      <div class="proposal-head">
+        <span class="proposal-tag">시안 C</span>
+        <span class="proposal-no">03</span>
+      </div>
+      <h3 class="proposal-title">피처드 + 리스트 (1+5)</h3>
+      <div class="frame">
+        <div class="frame-chrome">시안 C · 피처드 + 리스트</div>
+        <div class="frame-body">
+          <div class="home-subtitle">카카오 나우</div>
+          <div class="kn-featured" style="background-image:url('images/home/kakaonow_2.png'); background-position: center 25%;"></div>
+          <ul class="kn-list">
+            <li class="kn-item">
+              <div class="kn-thumb" style="background-image:url('images/home/kakaonow_1.png')"></div>
+              <div class="kn-item-text">
+                <p class="kn-item-title">일이삼사오육칠팔구 십일이삼사오육칠팔</p>
+                <p class="kn-item-sub">일이삼사오육칠팔구십</p>
+              </div>
+            </li>
+            <li class="kn-item">
+              <div class="kn-thumb" style="background-image:url('images/home/kakaonow_3.png')"></div>
+              <div class="kn-item-text">
+                <p class="kn-item-title">일이삼사오육칠팔구 십일이삼사오육칠팔</p>
+                <p class="kn-item-sub">일이삼사오육칠팔구십</p>
+              </div>
+            </li>
+            <li class="kn-item">
+              <div class="kn-thumb" style="background-image:url('images/home/kakaonow_4.png')"></div>
+              <div class="kn-item-text">
+                <p class="kn-item-title">일이삼사오육칠팔구 십일이삼사오육칠팔</p>
+                <p class="kn-item-sub">일이삼사오육칠팔구십</p>
+              </div>
+            </li>
+            <li class="kn-item">
+              <div class="kn-thumb" style="background-image:url('images/home/kakaonow_5.png')"></div>
+              <div class="kn-item-text">
+                <p class="kn-item-title">일이삼사오육칠팔구 십일이삼사오육칠팔</p>
+                <p class="kn-item-sub">일이삼사오육칠팔구십</p>
+              </div>
+            </li>
+            <li class="kn-item">
+              <div class="kn-thumb" style="background-image:url('images/home/kakaonow_6.png')"></div>
+              <div class="kn-item-text">
+                <p class="kn-item-title">일이삼사오육칠팔구 십일이삼사오육칠팔</p>
+                <p class="kn-item-sub">일이삼사오육칠팔구십</p>
+              </div>
+            </li>
+          </ul>
+        </div>
+      </div>
+      <div class="caption">
+        <div class="rationale-label">UX 근거 · Visual Hierarchy</div>
+        <p class="rationale">1 히어로는 주목·감성을 담당, 5 리스트는 <b>텍스트 일관 포맷</b>으로 스캔성 확보. YouTube 홈·App Store Today의 패턴. 리스트 포맷이 "제각각 디자인" 문제를 구조적으로 차단.</p>
+        <ul class="pros-cons">
+          <li class="pro">위계 확보 → 첫 소재는 대형·고CTR, 나머지는 스캔 가능</li>
+          <li class="pro">리스트 포맷 강제 → 배너 디자인 일관성 문제 해결</li>
+          <li class="con">리스트 썸네일만으로는 배너 소재의 비주얼 임팩트 손실</li>
+          <li class="pol">"6 슬롯 보존 + 위계" 타협안. 단, 5 슬롯은 "2등급" 인식 리스크</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- 시안 D: Normalized grid -->
+    <div class="proposal">
+      <div class="proposal-head">
+        <span class="proposal-tag">시안 D</span>
+        <span class="proposal-no">04</span>
+      </div>
+      <h3 class="proposal-title">2×3 유지 · 디자인 토큰 통일</h3>
+      <div class="frame">
+        <div class="frame-chrome">시안 D · 정규화 그리드</div>
+        <div class="frame-body">
+          <div class="home-subtitle">카카오 나우</div>
+          <div class="kn-norm-grid">
+            <div class="kn-norm-card" style="background: linear-gradient(180deg, #ECE6FF 0%, #ffffff 55%);">
+              <div class="kn-norm-top"><div class="kn-norm-emoji" style="background: #D9CFFF;">💬</div></div>
+              <div class="kn-norm-body">
+                <p class="kn-norm-title">일이삼사오육칠팔구</p>
+                <p class="kn-norm-sub">일이삼사오육칠팔</p>
+              </div>
+            </div>
+            <div class="kn-norm-card" style="background: linear-gradient(180deg, #FFF3D6 0%, #ffffff 55%);">
+              <div class="kn-norm-top"><div class="kn-norm-emoji" style="background: #FFE39A;">🎁</div></div>
+              <div class="kn-norm-body">
+                <p class="kn-norm-title">일이삼사오육칠팔구</p>
+                <p class="kn-norm-sub">일이삼사오육칠팔</p>
+              </div>
+            </div>
+            <div class="kn-norm-card" style="background: linear-gradient(180deg, #D6F5E6 0%, #ffffff 55%);">
+              <div class="kn-norm-top"><div class="kn-norm-emoji" style="background: #A8E6C5;">🌱</div></div>
+              <div class="kn-norm-body">
+                <p class="kn-norm-title">일이삼사오육칠팔구</p>
+                <p class="kn-norm-sub">일이삼사오육칠팔</p>
+              </div>
+            </div>
+            <div class="kn-norm-card" style="background: linear-gradient(180deg, #FFE3E0 0%, #ffffff 55%);">
+              <div class="kn-norm-top"><div class="kn-norm-emoji" style="background: #FFC1B8;">🎯</div></div>
+              <div class="kn-norm-body">
+                <p class="kn-norm-title">일이삼사오육칠팔구</p>
+                <p class="kn-norm-sub">일이삼사오육칠팔</p>
+              </div>
+            </div>
+            <div class="kn-norm-card" style="background: linear-gradient(180deg, #E0EEFF 0%, #ffffff 55%);">
+              <div class="kn-norm-top"><div class="kn-norm-emoji" style="background: #B9D5FF;">📈</div></div>
+              <div class="kn-norm-body">
+                <p class="kn-norm-title">일이삼사오육칠팔구</p>
+                <p class="kn-norm-sub">일이삼사오육칠팔</p>
+              </div>
+            </div>
+            <div class="kn-norm-card" style="background: linear-gradient(180deg, #F0E6FF 0%, #ffffff 55%);">
+              <div class="kn-norm-top"><div class="kn-norm-emoji" style="background: #D4BFFF;">✨</div></div>
+              <div class="kn-norm-body">
+                <p class="kn-norm-title">일이삼사오육칠팔구</p>
+                <p class="kn-norm-sub">일이삼사오육칠팔</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="caption">
+        <div class="rationale-label">UX 근거 · Design System Enforcement</div>
+        <p class="rationale">레이아웃은 유지하되 <b>카드 내부를 컴포넌트화</b>: 파스텔 배경 + 원형 아이콘 + 1줄 제목 + 1줄 서브. 배경 이미지에 텍스트 박는 자유 금지. 최소 개입으로 가독성·일관성 확보.</p>
+        <ul class="pros-cons">
+          <li class="pro">최소 변경 → 내부 이해관계자 저항 최소</li>
+          <li class="pro">디자인 토큰 강제로 "배너 가지각색" 문제 근본 해결</li>
+          <li class="pro">카드 세로를 175:204 → 160:128로 줄여 공간도 20%↓</li>
+          <li class="con">공간 절감 폭은 B·C보다 작음, 선택지 과다 문제는 남음</li>
+          <li class="pol">"슬롯·레이아웃 모두 유지, 품질만 개선" 가장 정치적 안전</li>
+        </ul>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ======= RECOMMENDATION ======= -->
+  <section class="recommend">
+    <div>
+      <h2>권장 전략 · 단계적 접근</h2>
+      <p>
+        <b>단일 정답은 없음.</b> 4개 시안은 <b>공간 절감 강도</b>와 <b>정치적 수용성</b>의 트레이드오프 축에 놓여 있습니다.
+        지표 하락 추세와 "소재에 따라 튀는" 패턴은 <b>포맷이 아니라 콘텐츠 품질</b>이 핵심임을 시사합니다.
+        따라서 포맷 개선만으로 해결되지 않으며, <b>소재 품질 게이트 + 개인화 슬롯</b>이 중장기 해답입니다.
+      </p>
+      <p>
+        단기적으로는 <b>시안 B (피크 캐러셀)</b>가 "6 슬롯 보존 + 공간 절감 + 탐색 어포던스"의 세 조건을
+        동시 만족하므로 내부 설득 비용 대비 가장 효율적입니다.
+      </p>
+    </div>
+    <div class="pick">
+      <h3>단계별 로드맵 제안</h3>
+      <ol>
+        <li><strong>STEP 1 · 긴급 (2주)</strong> — 시안 B 적용 + 소재 디자인 가이드 1.0 배포 (배경 이미지 위 텍스트 금지, 타이포 토큰 강제)</li>
+        <li><strong>STEP 2 · 측정 (4주)</strong> — 스와이프율·포지션별 CTR A/B, 슬롯 6개 필요성 데이터 검증</li>
+        <li><strong>STEP 3 · 재설계 (8주)</strong> — 슬롯 수를 <em>데이터 기반</em>으로 재협상, 피처드 슬롯(시안 C 상단) 1개를 <b>개인화 추천</b>으로 전환</li>
+        <li><strong>STEP 4 · 제도화</strong> — "배너 추가"는 소재 품질 게이트 통과 시에만 가능하도록 내부 프로세스 신설</li>
+      </ol>
+    </div>
+  </section>
+
+</div>
+</body>
+</html>
