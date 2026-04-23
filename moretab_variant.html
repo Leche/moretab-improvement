@@ -1,0 +1,2438 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<!-- 진짜 반응형: 디바이스 폭을 그대로 사용하고 컨텐츠가 가로로 늘어남(fluid).
+     393px(iPhone 15 Pro)은 네이티브, 그보다 넓거나 좁은 디바이스에서는 카드가 가로로 확장/수축.
+     viewport-fit=cover: 노치/홈 인디케이터 영역까지 화면 사용 + env(safe-area-inset-*) 활성화 */ -->
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<title>더보기탭</title>
+
+<!-- ===== PWA / Add to Home Screen 설정 =====
+     사파리에서 "공유 → 홈 화면에 추가" 후 홈 아이콘으로 열면 standalone 모드(사파리 UI 없음)로 실행됨.
+     실제 앱처럼 동작하는 목업 경험 제공. -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="더보기탭" />
+<meta name="theme-color" content="#ffffff" />
+<link rel="manifest" href="manifest.json" />
+<link rel="apple-touch-icon" sizes="180x180" href="icons/app_icon_180.png" />
+<link rel="icon" type="image/png" sizes="192x192" href="icons/app_icon_192.png" />
+
+<link rel="preconnect" href="https://cdn.jsdelivr.net" />
+<link rel="stylesheet" as="style" crossorigin
+  href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css" />
+<style>
+  :root {
+    --gray900: #191919;
+    --gray800: #333333;
+    --gray700: #595959;
+    --gray600: #595959;
+    --gray500: #767676;
+    --gray400: #999999;
+    --gray300: #b3b3b3;
+    --gray200: #d9d9d9;
+    --gray150: #e6e6e6;
+    --gray100: #f2f2f2;
+    --gray075: #f5f5f5;
+    --gray050: #f7f7f7;
+    --white: #ffffff;
+    --red500: #f4551e;
+    --point-red: #f04452;
+    --point-blue: #2f7ff5;
+    --chat-yellow: #fae100;
+    --line: rgba(0, 0, 0, 0.14);
+    --card-border: rgba(0, 0, 0, 0.04);
+    --img-border: rgba(0, 0, 0, 0.03);
+    --dim-border: rgba(255, 255, 255, 0.16);
+    /* Safe-area: PWA standalone 모드에서 노치/홈인디케이터 영역 자동 대응
+       (일반 사파리에서는 0으로 fallback) */
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  * { box-sizing: border-box; -webkit-font-smoothing: antialiased; }
+  /* 전역 폰트 강제 — 모든 요소에 Pretendard 강제 적용 */
+  *, *::before, *::after {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif !important;
+  }
+  html, body, button, input, select, textarea {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    background: #ffffff;
+    color: var(--gray900);
+    display: flex;
+    justify-content: center;
+    padding-bottom: 49px; /* tab-bar 높이 — 콘텐츠가 고정 탭바 아래로 가지 않도록 */
+  }
+
+  .device {
+    /* Fluid container — full device width
+       NOTE: overflow:hidden 제거. .top이 sticky이므로 page(<html>)가
+       nearest scroll ancestor여야 함. overflow:hidden이 걸리면 .device가
+       scroll container가 되어 sticky가 작동하지 않음. */
+    width: 100%;
+    background: #ffffff;
+    position: relative;
+  }
+
+  /* BG (Gradation)_최종버전 — 1321:3703
+     Base: #f5f5f5  |  Top 54px: white→#f5f5f5  |  Bottom 222px: #f5f5f5→white
+     Regular: header 104 ↔ tab-bar 49 / Standalone(PWA): header 104+safe-top ↔ tab-bar 49+safe-bottom */
+  .bg-gradient {
+    position: absolute;
+    top: 104px; left: 0; right: 0;
+    bottom: 49px;
+    background: #f5f5f5;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .bg-gradient::before {
+    /* BG gradation 1 — top 54px: white → #f5f5f5 */
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 54px;
+    background: linear-gradient(to bottom, #ffffff 0%, #f5f5f5 100%);
+  }
+  .bg-gradient::after {
+    /* BG gradation 3 — bottom 222px: #f5f5f5 → white */
+    content: '';
+    position: absolute;
+    bottom: 0; left: 0; right: 0;
+    height: 222px;
+    background: linear-gradient(to bottom, #f5f5f5 0%, #ffffff 100%);
+  }
+
+  /* ===== TOP =====
+     Sticky at top of viewport; hides on scroll down, shows on scroll up.
+     Height: main-tab 56 + chip-bar 48 = 104px (+safe-top in PWA standalone for notch)
+     position:sticky로 flow 안에 자리 잡기 때문에 .feed의 padding-top 오프셋 불필요.
+     Reveal(→visible)는 빠르게 160ms, hide(→hidden)는 240ms로 약간 느리게(자연스러운 사라짐) */
+  .top {
+    position: sticky;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+    background: #ffffff;
+    transition: transform 160ms cubic-bezier(0.22, 0.61, 0.36, 1);
+    will-change: transform;
+  }
+  .top.is-hidden {
+    transform: translateY(-100%);
+    transition-duration: 240ms;
+  }
+
+  /* Scroll Divider — Figma 1387:1007
+     chip-bar bottom 끝에 0.5px 실선(GRAY150A rgba(0,0,0,0.12)).
+     스크롤이 최상단일 때는 숨김, 아래로 스크롤 시작하면 즉시 표시(페이드 없음). */
+  .top::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 0.5px;
+    background: rgba(0, 0, 0, 0.12);
+    opacity: 0;
+    pointer-events: none;
+  }
+  .top.has-scroll::after {
+    opacity: 1;
+  }
+
+  /* Main tab (Figma: 1321:3710) — px-16, h-56, justify-between */
+  .main-tab {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 16px;
+    height: 56px;
+    background: #ffffff;
+  }
+  /* Title Type wrapper (Figma: I1321:3713;30471:3282) — h-56, pr-12, py-8 */
+  .main-tab .logo-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 56px;
+    padding: 8px 12px 8px 0;
+    gap: 10px;
+  }
+  .main-tab .logo {
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-weight: 700;
+    font-size: 23px;
+    line-height: normal;
+    color: #191919;
+    white-space: nowrap;
+  }
+  /* Trailing controls (Figma: 1321:3714) — gap-9, h-56, justify-end */
+  .main-tab .actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 9px;
+    height: 56px;
+  }
+  /* Icon Button (Figma: Trailing Button) — px-4 py-16, icon size 24 → click area 32x56 */
+  .icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 4px;
+    background: transparent;
+    border: 0;
+    cursor: pointer;
+    position: relative;
+  }
+  .icon-btn img,
+  .icon-btn svg {
+    display: block;
+    width: 24px;
+    height: 24px;
+  }
+
+  /* Top Chip - XLarge (Figma: 1321:3715) — chip set starts at left:16, top:0 */
+  .chip-bar {
+    height: 48px;
+    padding: 0 16px;
+    display: flex;
+    align-items: flex-start;
+    gap: 6px;
+    background: #ffffff;
+  }
+  /* A. Tab / 01. XLarge (Figma: 1321:3717) — h-38, px-16 py-10, gap-4, rounded-40
+     border 두께(1px)는 active/inactive 공통으로 유지하여 box-model 폭이 변하지 않도록 함.
+     inactive는 실선(rgba 0,0,0,0.14), active는 배경과 같은 색으로 "보이지 않는 1px" 처리.
+     → chip-bar는 공통 컨테이너로서 위치 고정, 칩은 상태(배경/테두리/글자색)만 토글. */
+  .chip {
+    height: 38px;
+    padding: 10px 16px;
+    border-radius: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    font-weight: 600;
+    font-size: 15px;
+    line-height: normal;
+    text-align: center;
+    background: #ffffff;
+    color: #191919;
+    border: 1px solid rgba(0, 0, 0, 0.14);
+    position: relative;
+    white-space: nowrap;
+    /* 상태 전환 시에도 flex gap/배치가 미세 떨리지 않게 */
+    box-sizing: border-box;
+    transition: background-color 120ms linear, color 120ms linear, border-color 120ms linear;
+  }
+  /* Chip text inner — min-w-14 per Figma token */
+  .chip > .chip-txt {
+    display: inline-block;
+    min-width: 14px;
+    text-align: center;
+  }
+  /* A. Tab / 01. XLarge — selected state (Figma: 1321:3720) — bg #191919
+     ※ border는 유지(두께 1px 동일)하되 색상만 #191919로 — 시각적으로는 "테두리 없음"처럼 보이고
+        layout 폭은 inactive 상태와 완벽히 동일하여 다른 칩 위치가 움직이지 않음. */
+  .chip.active {
+    background: #191919;
+    color: #ffffff;
+    border-color: #191919;
+  }
+
+  /* ===== FEED =====
+     .top은 position:sticky로 flow에 자리 잡으므로 padding-top 오프셋 불필요.
+     하단 .tab-bar(fixed 49px)만큼만 padding-bottom으로 확보.
+     Standalone(PWA): media query에서 safe-area 추가. */
+  .feed {
+    position: relative;
+    z-index: 5;
+    padding: 0 0 20px; /* 마지막 요소 아래 시각적 여백 20px만 */
+  }
+
+  /* ===== Share row (info+share) — Figma 1321:3799 =====
+     Container: flex items-start justify-between
+     info (left): pl-2px pt-6px — text/bar offset downward to align with btn center
+     share btn (right): 34×34, p-8px, rounded-28px, border rgba(0,0,0,0.08) */
+  .info-share {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+  .info-tag {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding-left: 2px;
+    padding-top: 6px;
+  }
+  .info-tag .bar {
+    display: inline-block;
+    width: 1.5px;
+    height: 13px;
+    background: #b2b2b2; /* GRAY400S */
+    border-radius: 40px;
+  }
+  .info-tag .txt {
+    font-size: 14px;
+    line-height: 17px;
+    color: #767676; /* GRAY550S */
+    letter-spacing: 0;
+    white-space: nowrap;
+  }
+  .share-btn {
+    width: 34px;
+    height: 34px;
+    padding: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 28px;
+    border: 1px solid rgba(0, 0, 0, 0.08); /* GRAY100A */
+    background: transparent;
+    cursor: pointer;
+    box-sizing: border-box;
+  }
+  .share-btn img,
+  .share-btn svg { width: 18px; height: 18px; color: var(--gray700); display: block; }
+
+  /* ===== Card (white background cards) =====
+     node 1321:3723 등 — 16px radius, white bg, subtle border.
+     Fluid width: 화면 폭에서 좌우 16px 마진을 뺀 만큼 가로로 늘어남 (393px 디자인 기준 폭은 361px). */
+  .card {
+    margin: 0 16px;
+    background: #ffffff;
+    box-shadow: 0px 0.5px 4px rgba(0, 0, 0, 0.02);
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    padding: 14px 16px 12px;
+    position: relative;
+  }
+
+  /* Title — 18px bold (semantic: h2) */
+  .card-title {
+    font-weight: 700;
+    font-size: 18px;
+    color: var(--gray900);
+    line-height: 1.4;
+    letter-spacing: -0.3px;
+    margin: 6px 0 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .card-title .tag-reserve {
+    /* Figma 1321:3986 — Tag/예약
+       bg #fee500, padding 4px, gap 1px, radius 5px
+       text Pretendard SemiBold 11px/1.15 black, icon 12×12 */
+    display: inline-flex;
+    align-items: center;
+    gap: 1px;
+    padding: 4px;
+    background: #fee500;
+    border-radius: 5px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #000;
+    line-height: 1.15;
+    letter-spacing: 0;
+  }
+  .card-title .tag-reserve img,
+  .card-title .tag-reserve svg {
+    width: 12px;
+    height: 12px;
+    flex: none;
+  }
+  /* Figma 1321:3795 — 장소 info row
+     - items-start, gap 4px, font-size 16px, leading 1.52, color GRAY600S #595959
+     - letter-spacing 0, margin-top 4px
+     - .star: RED500S #f4551e, font-weight 500 (Medium), icon 12×12 gap 2px
+     - .dot-sep: "∙" character rendered at 15px in GRAY600S (between review count and address) */
+  .card-meta {
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+    margin-top: 4px;
+    font-size: 16px;
+    line-height: 1.52;
+    color: var(--gray600);
+    letter-spacing: 0;
+  }
+  .card-meta .star {
+    color: var(--red500);
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .card-meta .dot-sep {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 8px;
+    height: 24px;
+    color: var(--gray600);
+    font-size: 15px;
+    line-height: 1;
+    letter-spacing: 0;
+  }
+  .card-meta .dot-sep::before {
+    content: '∙';
+  }
+
+  /* Figma 1321:3795 — card description, GRAY900S #191919 */
+  .card-desc {
+    font-size: 16px;
+    line-height: 1.52rem;
+    color: #191919;
+    letter-spacing: -0.3px;
+    /* card-title(h2) ↔ card-desc 간격: 4px */
+    margin-top: 4px;
+    /* card-desc ↔ thumb-row 간격: 14px */
+    margin-bottom: 14px;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* 1321:3731 3-thumbnail frame — fluid
+     - flex gap 2px
+     - each cell: 종횡비 119/111 유지 (디자인 기준 119px 가로 × 111px 세로)
+     - left cell: 12px radius tl/bl, right cell: 12px radius tr/br, middle: 0
+     - images object-cover */
+  .thumb-row {
+    display: flex;
+    align-items: stretch;
+    justify-content: center;
+    gap: 2px;
+  }
+  .thumb-row > .cell {
+    flex: 1 1 0;
+    min-width: 0;
+    aspect-ratio: 119 / 111;
+    position: relative;
+    border: 1px solid var(--img-border);
+    overflow: hidden;
+  }
+  .thumb-row > .cell:first-child {
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+  }
+  .thumb-row > .cell:last-child {
+    border-top-right-radius: 12px;
+    border-bottom-right-radius: 12px;
+  }
+  .thumb-row > .cell img {
+    /* Image overflows the 1px cell border on all sides so the image fills
+       the entire cell area (111px full), keeping the inter-image visible gap
+       exactly 2px (matching the .thumb-row `gap: 2px` setting). */
+    position: absolute;
+    inset: -1px;
+    width: calc(100% + 2px);
+    height: calc(100% + 2px);
+    object-fit: cover;
+    display: block;
+  }
+
+  /* Figma 1321:3795 — bullet description list
+     - flex column, 6px gap between items, 14px gap to next block (e.g. thumb-row)
+     - item: gap 4px, font-size 16px, line-height 1.52, color GRAY900S #191919, letter-spacing 0 */
+  .bullet-list {
+    margin-top: 12px;
+    margin-bottom: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .bullet-item {
+    display: flex;
+    gap: 4px;
+    align-items: flex-start;
+    font-size: 16px;
+    line-height: 1.52;
+    color: #191919;
+    letter-spacing: 0;
+  }
+  /* 8×26 container with 3px centered dot — matches Figma Dot component */
+  .bullet-item::before {
+    content: '';
+    flex: none;
+    width: 8px;
+    height: 26px;
+    background-image: radial-gradient(circle at center, #191919 1.5px, transparent 1.6px);
+    background-repeat: no-repeat;
+    background-position: center;
+  }
+
+  .feedback {
+    text-align: right;
+    font-size: 13px;
+    line-height: 17px;
+    color: var(--gray400);
+    margin-top: 14px;
+    letter-spacing: -0.2px;
+  }
+
+  /* ===== Card News (card_news_01) =====
+     Fluid 정사각형 — 가로는 16px 좌우 마진 빼고 가득, 높이는 aspect-ratio 1/1로 따라감.
+     overflow-clip, dim_blur overlay, content aligned bottom
+     Border radius 16px, light 4% border */
+  .card-news {
+    aspect-ratio: 1 / 1;
+    margin: 0 16px;
+    border: 1px solid var(--card-border);
+    border-radius: 16px;
+    overflow: hidden;
+    position: relative;
+    padding: 14px 16px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    color: #ffffff;
+  }
+  /* 마지막 카드 하단 여백은 .feed padding-bottom 20px + body padding-bottom 49px으로 처리 */
+  .card-news > .cn-bg {
+    position: absolute;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .card-news > .cn-bg img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+  /* card_news_01 (1321:3775) has image offset: top-[-9.69%], h-[143.2%] */
+  .card-news.variant1 > .cn-bg img {
+    height: 143.2%;
+    top: -9.69%;
+    object-position: center;
+  }
+  .card-news > .cn-dim {
+    /* dim_blur — 1321:3776
+       size 361×361, top/left -1px
+       backdrop-blur(16px), bg-gradient-to-b from transparent at 0% to rgba(0,0,0,0.16) at 50%, holds to 100%
+       Blur visibility confined to the bottom ~25-45% area via mask,
+       matching Figma where the blur appears only under the title/description text. */
+    position: absolute;
+    inset: -1px;
+    z-index: 1;
+    pointer-events: none;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    background: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0.16) 50%, rgba(0,0,0,0.16) 100%);
+    -webkit-mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 42%, rgba(0,0,0,1) 55%, rgba(0,0,0,1) 100%);
+            mask-image: linear-gradient(to bottom, rgba(0,0,0,0) 0%, rgba(0,0,0,0) 42%, rgba(0,0,0,1) 55%, rgba(0,0,0,1) 100%);
+  }
+  .card-news > .cn-content {
+    position: relative;
+    z-index: 2;
+    flex: 1 0 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    gap: 14px;
+  }
+  .cn-text {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    align-items: flex-start;
+    width: 100%;
+  }
+  .cn-title {
+    font-weight: 700;
+    font-size: 18px;
+    line-height: 1.4;
+    color: #ffffff;
+    letter-spacing: -0.3px;
+    margin: 0;
+    width: 100%;
+  }
+  .cn-desc {
+    font-weight: 400;
+    font-size: 16px;
+    line-height: 1.52;
+    color: #ffffff;
+    letter-spacing: -0.2px;
+    margin: 0;
+    width: 100%;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .cn-meta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 34px;
+  }
+  .cn-meta .info-tag .bar { background: rgba(255,255,255,1); width: 1.5px; height: 13px; }
+  .cn-meta .info-tag .txt { color: #ffffff; }
+  .cn-meta .share-btn {
+    border-color: var(--dim-border);
+    background: transparent;
+  }
+  .cn-meta .share-btn svg { color: #ffffff; }
+
+  /* ===== Place list row ===== */
+  .place-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  /* 13px spacing between consecutive place-row items */
+  .place-row + .place-row { margin-top: 13px; }
+  .place-row .place-img {
+    width: 68px;
+    height: 68px;
+    border-radius: 10px;
+    border: 1px solid var(--img-border);
+    background: #eee;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+  .place-row .place-img img {
+    width: 100%; height: 100%; object-fit: cover; display: block;
+  }
+  .place-row .place-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+  .place-row .place-name {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--gray900);
+    letter-spacing: -0.3px;
+    margin: 0;
+    line-height: 20px;
+  }
+  .place-row .place-addr {
+    font-size: 14px;
+    color: var(--gray600);
+    margin: 0;
+    letter-spacing: -0.28px;
+  }
+  .place-row .place-rating {
+    font-size: 14px;
+    color: var(--gray600);
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .place-row .place-rating .star {
+    color: var(--red500);
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .place-row .place-rating .star svg { width: 12px; height: 12px; }
+  .place-row .chevron { color: var(--gray300); flex-shrink: 0; }
+  .more-btn {
+    width: 100%;
+    height: 39px;
+    border-radius: 10px;
+    background: var(--gray100);
+    border: 0;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--gray700);
+    /* 16px gap between last place-row and more-btn */
+    margin-top: 16px;
+    cursor: pointer;
+    letter-spacing: -0.2px;
+  }
+  /* more-btn 하단과 card 섹션 사이 간격 16px (card padding-bottom override) */
+  .card:has(> .more-btn:last-child) { padding-bottom: 16px; }
+
+  /* ===== Finance card ===== */
+  .fin-index { display: flex; flex-direction: column; gap: 4px; }
+  .fin-index .lbl {
+    font-size: 13px;
+    color: var(--gray700);
+    font-weight: 600;
+    letter-spacing: -0.2px;
+  }
+  .fin-index .price { display: flex; align-items: center; gap: 8px; }
+  .fin-index .price .val {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--gray900);
+    letter-spacing: -0.4px;
+  }
+  .fin-index .price .chg {
+    font-size: 14px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .fin-index .price .chg.down { color: var(--point-blue); }
+  .fin-divider {
+    height: 1px;
+    background: rgba(0,0,0,0.06);
+    margin: 12px 0 14px;
+  }
+  .fin-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+  }
+  .fin-row .left .name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray900);
+    letter-spacing: -0.2px;
+  }
+  .fin-row .left .code {
+    font-size: 12px;
+    color: var(--gray500);
+    margin-top: 3px;
+  }
+  .fin-row .right { text-align: right; }
+  .fin-row .right .p {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--gray900);
+  }
+  .fin-row .right .c {
+    font-size: 12px;
+    font-weight: 600;
+    margin-top: 3px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 2px;
+  }
+  .fin-row .right .c.up   { color: var(--point-red); }
+  .fin-row .right .c.down { color: var(--point-blue); }
+  .fin-row .right .c.flat { color: var(--gray500); }
+  .fin-row .right .c svg,
+  .fin-index .price .chg svg {
+    display: inline-block;
+    vertical-align: -1px;
+    margin-right: 1px;
+  }
+  .fin-footer {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: var(--gray400);
+  }
+  .fin-footer a { color: var(--gray400); text-decoration: underline; }
+
+  /* ===== Bottom Tab Bar — Figma 1321:4018 =====
+     Structure: 5 Tab (49px, #fff) + Home Indicator area (34px)
+     Top edge of .tabs uses a subtle 1px divider line (GRAY100A) instead of shadow.
+     Fixed to bottom of viewport so tabs + home indicator are always visible regardless of scroll.
+     Standalone(PWA)에서는 iOS가 실제 home indicator를 그려주므로 fake .home-indicator-area를 숨기고
+     safe-bottom 만큼 padding으로 대체(하단 media query에서 처리). */
+  .tab-bar {
+    background: #ffffff;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 100;
+  }
+  .tab-bar .tabs {
+    height: 49px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 8px;
+    overflow: hidden;
+    touch-action: none;
+    /* 1px top divider (Figma tab_shadow replaced with a hairline, GRAY100A) */
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+  }
+  .tab-bar .tab {
+    width: 64px;
+    height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .tab-bar .tab.openchat { width: 65px; }
+  .tab-bar .tab img { width: 28px; height: 28px; display: block; }
+  .tab-bar .tab .dot-badge {
+    /* Tab 5 Badge — RED500S #f4551e, 4×4, top 2px from Ico&Badge top */
+    position: absolute;
+    top: 12px;
+    left: calc(50% + 12px);
+    width: 4px;
+    height: 4px;
+    background: #f4551e;
+    border-radius: 50%;
+  }
+  /* ===== Safe-area (노치/홈인디케이터) 통합 처리 =====
+     .home-indicator-area 가짜 34px 제거. 대신:
+     - Regular browser: env()가 0으로 fallback → 추가 padding 없음 (tab-bar = 49px)
+     - PWA standalone: iOS가 실제 safe-area 값 반환 → 자동으로 상/하단 여백 확보
+     이중 분기: @media (display-mode: standalone) + html[data-standalone="true"] */
+  @media all and (display-mode: standalone) {
+    .top { padding-top: env(safe-area-inset-top, 0px); }
+    .tab-bar { padding-bottom: env(safe-area-inset-bottom, 0px); }
+    body {
+      padding-bottom: calc(49px + env(safe-area-inset-bottom, 0px));
+    }
+    .bg-gradient {
+      top: calc(104px + env(safe-area-inset-top, 0px));
+      bottom: calc(49px + env(safe-area-inset-bottom, 0px));
+    }
+  }
+  html[data-standalone="true"] .top { padding-top: env(safe-area-inset-top, 0px); }
+  html[data-standalone="true"] .tab-bar { padding-bottom: env(safe-area-inset-bottom, 0px); }
+  html[data-standalone="true"] body {
+    padding-bottom: calc(49px + env(safe-area-inset-bottom, 0px));
+  }
+  html[data-standalone="true"] .bg-gradient {
+    top: calc(104px + env(safe-area-inset-top, 0px));
+    bottom: calc(49px + env(safe-area-inset-bottom, 0px));
+  }
+
+  /* ===== Add to Home Screen 안내 배너 =====
+     사파리(non-standalone)에서 첫 방문 시 하단에 표시.
+     "공유 → 홈 화면에 추가"로 PWA 설치 유도. JS에서 iOS Safari 감지해서 표시. */
+  .a2hs-banner {
+    position: fixed;
+    left: 12px;
+    right: 12px;
+    bottom: 16px;
+    z-index: 200;
+    background: #191919;
+    color: #ffffff;
+    border-radius: 14px;
+    padding: 14px 16px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    display: none;
+    align-items: center;
+    gap: 12px;
+    font-size: 14px;
+    line-height: 1.45;
+    letter-spacing: -0.2px;
+    transform: translateY(120%);
+    opacity: 0;
+    transition: transform 280ms cubic-bezier(0.22, 0.61, 0.36, 1), opacity 200ms ease;
+  }
+  .a2hs-banner.is-visible {
+    transform: translateY(0);
+    opacity: 1;
+  }
+  .a2hs-banner .a2hs-text {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .a2hs-banner .a2hs-text strong {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 2px;
+  }
+  .a2hs-banner .a2hs-text span {
+    display: block;
+    color: rgba(255, 255, 255, 0.72);
+    font-size: 13px;
+  }
+  .a2hs-banner .a2hs-share {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    vertical-align: -3px;
+    margin: 0 2px;
+  }
+  .a2hs-banner .a2hs-close {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    border: 0;
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 22px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+  }
+
+  /* =====================================================================
+     ===== 화면 전환 (Screen Router) =====================================
+     .screen 은 기본 숨김, .is-active 일 때만 노출. 칩 클릭 시 토글.
+     ===================================================================== */
+  .screen { display: none; }
+  .screen.is-active { display: block; }
+
+  /* =====================================================================
+     ===== SCREEN: HOME (홈 칩 선택 시) ===================================
+     Figma 3982:180303 기준. 컨테이너 padding은 main.feed의 16px 좌우 적용.
+     섹션간 gap 10px. 배경은 bg-gradient(#f5f5f5)를 그대로 사용.
+     ===================================================================== */
+  .screen-home {
+    display: none;  /* default off; overridden by .is-active below */
+    padding: 6px 16px 0;
+    flex-direction: column;
+    gap: 12px;                  /* 섹션 간 gap 12 */
+  }
+  .screen-home.is-active { display: flex; }
+  .screen-wallet { display: none; padding-top: 6px; }
+  body.wallet-active .bg-gradient { display: none; }
+  .screen-wallet.is-active { display: block; }
+  .wallet-screenshot { width: 100%; }
+  .wallet-screenshot img { width: 100%; display: block; }
+
+  /* --- 1) Pay strip (Figma Pay_Component 3982:180344) ---
+     EXACT Figma spec:
+       bg #fee500(yellow500s), padding 18px(all sides), rounded 12px,
+       justify-between, items-center
+     좌: 로고(40x14) + gap 6 + "53,000원" (Pretendard Bold 15, line-height 18)
+     우: 송금 | 자산 | 결제 (each Pretendard Medium 14, line-height 20, gap 12)
+     divider: 0.5px × 13px, black opacity 12% */
+  .pay-strip {
+    background: #fee500;
+    border-radius: 12px;
+    padding: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .pay-left {
+    display: flex; align-items: center; gap: 6px;
+  }
+  .pay-logo {
+    display: inline-block;
+    width: 40px;
+    height: 14px;
+    flex: none;
+  }
+  .pay-logo img {
+    display: block;
+    width: 40px;
+    height: 14px;
+  }
+  .pay-amount {
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 700;
+    font-size: 15px;
+    line-height: 18px;
+    color: #191919;
+    white-space: nowrap;
+  }
+  .pay-btns {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 500;
+    font-size: 14px;
+    line-height: 20px;
+    color: #191919;
+  }
+  .pay-btns > span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+  .pay-btns > .divider {
+    width: 0.5px; height: 13px;
+    background: #000000;
+    opacity: 0.12;
+    flex: none;
+  }
+  .pay-btns .pay-ico {
+    width: 14px; height: 14px; display: block; flex: none;
+  }
+
+  /* --- 2) Service Shortcut (Figma 3986:1009, 254 tall) ---
+     white bg rounded 10, padding top/left/right 12, bottom 16 (요청 반영). */
+  .service-shortcut {
+    background: #ffffff;
+    box-shadow: 0px 0.5px 4px rgba(0, 0, 0, 0.02);
+    border-radius: 12px;
+    padding: 12px 12px 16px;
+    display: flex; flex-direction: column;
+    gap: 8px;
+    align-items: center;
+  }
+  /* Service Shortcut: 가로 스와이프 3페이지 + 인디케이터
+     .service-pages: overflow-x scroll-snap 컨테이너
+     .service-page: 각 페이지 = 4x3 grid
+     iOS 26 스와이프 강도 맞춤:
+       - scroll-behavior 컨테이너 제거 → 터치 이벤트는 OS 네이티브 물리엔진 직접 사용
+         (dot 클릭 smooth는 JS scrollTo({ behavior:'smooth' })가 별도 처리)
+       - overscroll-behavior-x: contain → 부모로 스크롤 체인 차단, 앱과 동일한 경계감
+       - touch-action: pan-x → 수평 스와이프 전용 힌트로 응답 지연(300ms) 제거 */
+  .service-pages {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x;
+    scrollbar-width: none;
+    width: 100%;
+  }
+  .service-pages::-webkit-scrollbar { display: none; height: 0; width: 0; }
+  .service-page {
+    flex: 0 0 100%;
+    scroll-snap-align: start;
+    scroll-snap-stop: always;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    width: 100%;
+  }
+  .service-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    width: 100%;
+  }
+  .service-cell {
+    height: 71px;
+    display: flex; flex-direction: column;
+    align-items: center;
+    position: relative;
+  }
+  .service-cell.empty { pointer-events: none; }
+  .service-icon {
+    width: 38px; height: 38px;
+    display: inline-flex; align-items: center; justify-content: center;
+    margin-top: 6px;
+    position: relative;
+  }
+  .service-icon svg,
+  .service-icon img { display: block; width: 38px; height: 38px; }
+  .service-icon .dot-badge {
+    position: absolute; top: 0; right: -2px;
+    width: 5px; height: 5px; border-radius: 50%;
+    background: #f04452;
+  }
+  .service-label {
+    position: absolute;
+    bottom: 6.5px;
+    left: 0; right: 0;
+    font-size: 12px;
+    color: #191919;
+    text-align: center;
+    line-height: normal;    /* Auto (요청 반영) */
+  }
+  /* 인디케이터 (Figma 3986:1028 Oval1 bg #191919 rounded 3)
+     34x5 컨테이너: 활성 = 14x5 bar (rounded 2.5), 비활성 = 5x5 dot */
+  .service-indicator {
+    display: flex; align-items: center; gap: 5px;
+    height: 5px;
+  }
+  .service-indicator .dot {
+    display: block;
+    width: 5px; height: 5px;
+    border-radius: 3px;
+    background: rgba(0, 0, 0, 0.12);
+    transition: width 220ms cubic-bezier(.2,.7,.2,1), background-color 220ms ease;
+    cursor: pointer;
+  }
+  .service-indicator .dot.active {
+    width: 14px;
+    background: #191919;
+  }
+
+  /* --- 3) AD banner (Figma 5074:20173) ---
+     Card 361x226. IMG area: inset 0 0 45px 0 (full width × height-45px).
+     Title + CTA absolutely positioned in bottom 45px band.
+     Card: bg white, rounded 12, shadow 0 0.5px 4px rgba(0,0,0,0.02),
+     inner 0.5px ring rgba(255,255,255,0.2). */
+  .home-ad {
+    position: relative;
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 0.5px 4px 0 rgba(0, 0, 0, 0.02);
+    overflow: hidden;
+    aspect-ratio: 361 / 226;
+  }
+  .home-ad::after {
+    /* inner 0.5px ring (Figma border node 5074:20183) */
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 0.5px solid rgba(255, 255, 255, 0.2);
+    border-radius: 12px;
+    pointer-events: none;
+  }
+  .home-ad-img {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: calc(100% - 45px);
+    overflow: hidden;
+  }
+  .home-ad-img > img.home-ad-hero {
+    display: block;
+    width: 100%; height: 100%;
+    object-fit: cover;
+  }
+  /* AD 뱃지 (Figma 910:51580 ocIcoAd) — 22x15 pill, top-right 8px
+     bg: rgba(255,255,255,0.36), border 1px rgba(0,0,0,0.2), rounded 15
+     text: SF Pro Semibold 8.5px rgba(0,0,0,0.4) */
+  .home-ad-badge {
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 22px;
+    height: 15px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.36);
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 15px;
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro', 'Pretendard', sans-serif;
+    font-weight: 590;
+    font-size: 8.5px;
+    line-height: 10px;
+    color: rgba(0, 0, 0, 0.4);
+    letter-spacing: 0;
+    text-align: center;
+    z-index: 2;
+  }
+  /* Title — Pretendard Regular 15, ellipsis w-235, bottom band
+     Figma 5074:20174: left 10, bottom 13, w 235, h 20 */
+  .home-ad-title {
+    position: absolute;
+    left: 10px;
+    bottom: 13px;
+    width: 235px;
+    height: 20px;
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 400;
+    font-size: 15px;
+    line-height: normal;
+    color: #191919;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* CTA "바로가기" — Pretendard Medium 11, tracking -0.5
+     border 1px rgba(0,0,0,0.2), rounded 2, padding 6/8, bg white
+     bottom-right 10px */
+  .home-ad-cta {
+    position: absolute;
+    bottom: 10px;
+    right: 10px;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 2px;
+    padding: 6px 8px;
+    font-family: 'Pretendard', sans-serif;
+    font-weight: 500;
+    font-size: 11px;
+    line-height: normal;
+    letter-spacing: -0.5px;
+    color: #191919;
+    text-align: center;
+    white-space: nowrap;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* --- 4) Section Subtitle (Figma Subtitle18 공통) ---
+     18px bold, color #191919, padding 12/6 */
+  .home-subtitle {
+    font-size: 18px;
+    font-weight: 600;
+    color: #191919;
+    line-height: 1.22;
+    padding: 18px 0 15px;
+    letter-spacing: -0.3px;
+  }
+
+  /* --- 5) Game Play (Figma 4781:31742, 415 tall) --- */
+  .game-card {
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 16px 0;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    box-shadow: 0px 0.5px 4px rgba(0, 0, 0, 0.02);
+    overflow: hidden;
+  }
+  .game-banner {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 14px; color: #191919;
+    padding: 0 16px;
+    margin-bottom: 16px;
+  }
+  .game-banner-ico {
+    width: 22px; height: 22px; flex: none;
+    display: inline-block;
+  }
+  .game-banner-ico img { width: 100%; height: 100%; display: block; }
+  .game-list {
+    display: flex;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-left: 16px;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+    touch-action: pan-x;
+    scrollbar-width: none;
+    gap: 0;
+    margin-bottom: 16px;
+  }
+  .game-list::-webkit-scrollbar { display: none; }
+  .game-list-spacer {
+    flex: none;
+    width: 16px;
+    display: block;
+  }
+  .game-item {
+    flex: 0 0 156px;
+    scroll-snap-align: start;
+    min-width: 0;
+    margin-right: 10px;
+  }
+  .game-item:last-child { margin-right: 0; }
+  .game-thumb {
+    width: 156px;
+    height: 156px;
+    border-radius: 8px;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 10px;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    border: 0.5px solid rgba(0, 0, 0, 0.06);
+  }
+  .game-thumb.t1 { background-image: url('images/home/game_thumb_1.png'); }
+  .game-thumb.t2 { background-image: url('images/home/game_thumb_2.png'); }
+  .game-thumb.t3 { background-image: url('images/home/game_thumb_3.png'); }
+  .game-badge {
+    position: absolute;
+    top: 5.5px; left: 5.5px;
+    background: #f4551e;
+    border-radius: 4px;
+    padding: 2px 5px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: -0.1px;
+    -webkit-backdrop-filter: blur(10px);
+    backdrop-filter: blur(10px);
+    line-height: 1.4;
+  }
+  .game-title {
+    font-size: 15px; font-weight: 600;
+    color: #191919;
+    margin-bottom: 3px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    letter-spacing: -0.2px;
+  }
+  .game-play-count {
+    display: flex; align-items: center; gap: 3px;
+    font-size: 13px; color: #767676;
+    letter-spacing: -0.2px;
+  }
+  .game-play-count img { width: 12px; height: 12px; flex: none; display: block; }
+  .game-divider {
+    height: 1px;
+    background: rgba(0, 0, 0, 0.06);
+    margin: 0 16px 16px;
+  }
+  .game-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 0 16px;
+  }
+  .game-stat {
+    display: flex; align-items: center; gap: 6px;
+  }
+  .game-stat-ico { width: 22px; height: 22px; flex: none; }
+  .game-stat-ico img { width: 100%; height: 100%; display: block; }
+  .game-stat-label { flex: 1; font-size: 14px; color: #191919; letter-spacing: -0.2px; }
+  .game-stat-value {
+    display: inline-flex; align-items: center; gap: 2px;
+    font-size: 14px; color: #191919; font-weight: 500;
+  }
+  .game-stat-value img { width: 10px; height: 16px; display: block; }
+
+  /* --- 6) 카카오 나우 (Figma 6541:26335, 6 cards 3x2)
+     border: 0.5px inset overlay rgba(0,0,0,0.08), radius 12px */
+  .kakaonow-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 11px;
+  }
+  .kakaonow-card {
+    position: relative;
+    aspect-ratio: 175/204;
+    border-radius: 12px;
+    overflow: hidden;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+  }
+  /* inset border overlay — overflow:hidden 안에서도 테두리 표시 */
+  .kakaonow-card::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border: 0.5px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    pointer-events: none;
+  }
+  .kakaonow-card.k1 { background-image: url('images/home/kakaonow_1.png'); }
+  .kakaonow-card.k2 { background-image: url('images/home/kakaonow_2.png'); }
+  .kakaonow-card.k3 { background-image: url('images/home/kakaonow_3.png'); }
+  .kakaonow-card.k4 { background-image: url('images/home/kakaonow_4.png'); }
+  .kakaonow-card.k5 { background-image: url('images/home/kakaonow_5.png'); }
+  .kakaonow-card.k6 { background-image: url('images/home/kakaonow_6.png'); }
+
+  /* ============================================================
+     KAKAO NOW — PROPOSAL VARIANTS (A/B/C/D)
+     ?v= 파라미터로 전환
+     ============================================================ */
+
+  /* 시안 A · 싱글 히어로 + 자동 롤링 */
+  .kn-a-wrap { position: relative; }
+  .kn-a-stage {
+    position: relative; width: 100%; aspect-ratio: 329/148;
+    border-radius: 14px; overflow: hidden; background: #f2f2f2;
+  }
+  .kn-a-slide {
+    position: absolute; inset: 0;
+    background-size: cover; background-position: center;
+    opacity: 0; transition: opacity 0.5s ease;
+  }
+  .kn-a-slide.is-on { opacity: 1; }
+  .kn-a-stage::after {
+    content: ''; position: absolute; inset: 0; z-index: 2;
+    border: 0.5px solid rgba(0,0,0,0.08); border-radius: 14px; pointer-events: none;
+  }
+  .kn-a-dots { display: flex; justify-content: center; gap: 5px; margin-top: 10px; }
+  .kn-a-dots button {
+    width: 5px; height: 5px; border-radius: 50%;
+    background: #d7dbe3; border: 0; padding: 0; cursor: pointer;
+    transition: background 0.3s ease, width 0.3s ease;
+  }
+  .kn-a-dots button.is-on { background: #191919; width: 14px; border-radius: 3px; }
+
+  /* 시안 B · 가로 스와이프 피크 */
+  .kn-b-wrap { margin: 0 -16px; }
+  .kn-b-track {
+    display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory;
+    padding: 0 16px 6px; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+  }
+  .kn-b-track::-webkit-scrollbar { display: none; }
+  .kn-b-card {
+    flex: 0 0 auto; width: 138px; aspect-ratio: 138/168;
+    border-radius: 12px; overflow: hidden; position: relative;
+    scroll-snap-align: start;
+    background-size: cover; background-position: center;
+  }
+  .kn-b-card::after {
+    content: ''; position: absolute; inset: 0;
+    border: 0.5px solid rgba(0,0,0,0.08); border-radius: 12px; pointer-events: none;
+  }
+  .kn-b-bar {
+    margin: 10px 16px 0; height: 2px; background: #eceef2; border-radius: 2px;
+    position: relative; overflow: hidden;
+  }
+  .kn-b-bar-fill {
+    position: absolute; left: 0; top: 0; bottom: 0; width: 30%;
+    background: #191919; border-radius: 2px;
+    transition: left 0.2s ease, width 0.2s ease;
+  }
+
+  /* 시안 C · 피처드 + 리스트 */
+  .kn-c-featured {
+    position: relative; width: 100%; aspect-ratio: 329/148;
+    border-radius: 14px; overflow: hidden;
+    background-size: cover; background-position: center;
+    margin-bottom: 14px;
+  }
+  .kn-c-featured::after {
+    content: ''; position: absolute; inset: 0;
+    border: 0.5px solid rgba(0,0,0,0.08); border-radius: 14px; pointer-events: none;
+  }
+  .kn-c-list { list-style: none; padding: 0; margin: 0; }
+  .kn-c-item {
+    display: flex; align-items: center; gap: 12px; padding: 10px 0;
+    border-bottom: 0.5px solid #eff1f5;
+  }
+  .kn-c-item:last-child { border-bottom: 0; }
+  .kn-c-thumb {
+    width: 44px; height: 44px; border-radius: 10px; flex: none;
+    background-size: cover; background-position: center; position: relative;
+  }
+  .kn-c-thumb::after {
+    content: ''; position: absolute; inset: 0;
+    border: 0.5px solid rgba(0,0,0,0.06); border-radius: 10px;
+  }
+  .kn-c-text { flex: 1; min-width: 0; }
+  .kn-c-title {
+    font-size: 14px; color: #191919; font-weight: 500; margin: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: -0.01em;
+  }
+  .kn-c-sub {
+    font-size: 12px; color: #7a8296; margin: 2px 0 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  /* 시안 D · 정규화 2×3 그리드 */
+  .kn-d-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .kn-d-card {
+    position: relative; aspect-ratio: 168/132;
+    border-radius: 12px; overflow: hidden; background: #fff;
+    border: 0.5px solid rgba(0,0,0,0.08);
+    display: flex; flex-direction: column;
+  }
+  .kn-d-top {
+    height: 40px; padding: 8px 10px;
+    display: flex; align-items: center; justify-content: flex-end;
+  }
+  .kn-d-emoji {
+    width: 28px; height: 28px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center; font-size: 14px;
+  }
+  .kn-d-body {
+    padding: 0 12px 12px; flex: 1;
+    display: flex; flex-direction: column; justify-content: flex-end;
+  }
+  .kn-d-title {
+    font-size: 13px; font-weight: 600; color: #191919; margin: 0 0 2px;
+    line-height: 1.3; letter-spacing: -0.01em;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .kn-d-sub {
+    font-size: 11px; color: #7a8296; margin: 0;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+
+  /* 시안 라벨 (테스트용, 실제 배포에선 제거 가능) */
+  .kn-variant-badge {
+    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
+    background: rgba(17,20,24,0.92); color: #fff;
+    font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
+    padding: 7px 14px; border-radius: 999px;
+    z-index: 9999; pointer-events: none;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+  }
+
+  /* --- 7) Weather (Figma 5775:3010 — HTML 구현)
+     Container: white bg, radius 12, shadow 0 0.5px 4px rgba(0,0,0,0.02)
+     padding 16, flex row items-center gap 16
+     좌(날씨): flex col gap 9 / 우(위치버튼): 28×28 */
+  .weather-card {
+    background: #ffffff;
+    box-shadow: 0px 0.5px 4px rgba(0, 0, 0, 0.02);
+    border-radius: 12px;
+    box-shadow: 0 0.5px 4px 0 rgba(0, 0, 0, 0.02);
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+  /* 날씨 좌측 영역 */
+  .wc-info {
+    flex: 1 0 0;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+  /* 위치명 — Pretendard SemiBold 12, #191919 */
+  .wc-location {
+    font-size: 12px;
+    font-weight: 600;
+    color: #191919;
+    line-height: normal;
+    white-space: nowrap;
+  }
+  /* 날씨정보 행 */
+  .wc-weather-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  /* 현재 날씨: 아이콘(36×36) + 기온(32px) — Figma 5775:3015 */
+  .wc-current {
+    position: relative;
+    width: 89px;
+    height: 38px;
+    flex-shrink: 0;
+  }
+  .wc-ico {
+    position: absolute;
+    left: 0;
+    top: 1px;
+    width: 36px;
+    height: 36px;
+    display: block;
+  }
+  .wc-temp {
+    position: absolute;
+    left: 41px;
+    top: 0;
+    font-size: 32px;
+    font-weight: 400;
+    color: #191919;
+    line-height: normal;
+    white-space: nowrap;
+  }
+  /* 날씨설명 — Pretendard Medium 12, 절대배치 3줄 — Figma 5775:3023 */
+  .wc-desc {
+    position: relative;
+    width: 103px;
+    height: 38px;
+    flex-shrink: 0;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .wc-desc-line1,
+  .wc-desc-dust,
+  .wc-desc-level { position: absolute; margin: 0; line-height: normal; }
+  .wc-desc-line1  { left: 0;    top: calc(50% - 16px); color: #191919; }
+  .wc-desc-dust   { left: 0;    top: calc(50% + 1px);  color: rgba(25, 25, 25, 0.6); }
+  .wc-desc-level  { left: 47px; top: calc(50% + 1px);  color: #f4551e; }
+  /* 위치 변경 버튼 (Figma 5775:3027) — 28×28, Oval2 bg + location icon */
+  .wc-loc-btn {
+    position: relative;
+    width: 28px;
+    height: 28px;
+    flex-shrink: 0;
+    border: none;
+    background: transparent;
+    padding: 0;
+    cursor: pointer;
+    display: block;
+  }
+  .wc-loc-oval {
+    position: absolute;
+    inset: 0;
+    width: 28px;
+    height: 28px;
+    display: block;
+  }
+  .wc-loc-ico {
+    position: absolute;
+    left: 6.5px;
+    top: 6.5px;
+    width: 15px;
+    height: 15px;
+    display: block;
+  }
+
+  /* --- 8) Local AD (Figma 6541:26493) — PNG 3x 풀 카드 이미지 --- */
+  .local-ad {
+    background: #ffffff;
+    box-shadow: 0px 0.5px 4px rgba(0, 0, 0, 0.02);
+    border-radius: 10px;
+    overflow: hidden;
+    display: block;
+  }
+  .local-ad img {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+</style>
+</head>
+<body>
+  <div class="device">
+    <div class="bg-gradient" aria-hidden="true"></div>
+
+    <!-- TOP -->
+    <header class="top">
+      <!-- Main tab (피그마 1321:3710) -->
+      <div class="main-tab">
+        <!-- Title Type (피그마 1321:3713) -->
+        <div class="logo-wrap"><div class="logo">더보기</div></div>
+        <!-- Trailing controls (피그마 1321:3714) -->
+        <div class="actions">
+          <!-- NavigationSearch (피그마 1321:3714 > Trailing Button1) -->
+          <button class="icon-btn" aria-label="검색"><img src="icons/nav_search@3x.png" width="24" height="24" alt="" /></button>
+          <!-- NavigationCodescan (피그마 1321:3714 > Trailing Button3) -->
+          <button class="icon-btn" aria-label="코드스캔"><img src="icons/nav_codescan@3x.png" width="24" height="24" alt="" /></button>
+          <!-- Setting (피그마 1321:3714 > Trailing Button4) -->
+          <button class="icon-btn" aria-label="설정"><img src="icons/nav_settings@3x.png" width="24" height="24" alt="" /></button>
+        </div>
+      </div>
+
+      <!-- Top Chip - XLarge (피그마 1321:3715) -->
+      <div class="chip-bar">
+        <div class="chip active"><span class="chip-txt">홈</span></div>
+        <div class="chip"><span class="chip-txt">지갑</span></div>
+      </div>
+    </header>
+
+    <main class="feed">
+
+
+
+      <!-- ===================================================================
+           SCREEN: WALLET (지갑 칩 선택 시)
+           =================================================================== -->
+      <section class="screen screen-wallet" data-screen="wallet">
+        <div class="wallet-screenshot">
+          <img src="images/wallet_dummy_img.png" alt="지갑 화면" />
+        </div>
+      </section>
+      <!-- /screen-wallet -->
+
+      <!-- ===================================================================
+           SCREEN: HOME (홈 칩 선택 시) — Figma 3982:180303 기반
+           =================================================================== -->
+      <section class="screen screen-home is-active" data-screen="home" id="homeScreen">
+      <!-- 홈 화면 컴포넌트는 JS가 렌더링합니다. HOME_COMPONENTS 배열에서 데이터를 수정하세요. -->
+      </section>
+            <!-- /screen-home -->
+
+    </main>
+
+    <!-- Bottom Tab Bar — Figma 1321:4018 -->
+    <footer class="tab-bar">
+      <!-- 5 Tab row (49px, white) -->
+      <div class="tabs">
+        <!-- 친구 (Friend) -->
+        <div class="tab friend"><img src="icons/tab_friends@3x.png" width="28" height="28" alt="친구" /></div>
+        <!-- 채팅 (Chat) -->
+        <div class="tab chat"><img src="icons/tab_chat@3x.png" width="28" height="28" alt="채팅" /></div>
+        <!-- 오픈채팅 (OpenChat) - 65px wide -->
+        <div class="tab openchat"><img src="icons/tab_openchat@3x.png" width="28" height="28" alt="오픈채팅" /></div>
+        <!-- 쇼핑 (Shopping) -->
+        <div class="tab shop"><img src="icons/tab_shop@3x.png" width="28" height="28" alt="쇼핑" /></div>
+        <!-- 더보기 (More) - selected, with red dot badge -->
+        <div class="tab more selected"><img src="icons/tab_more@3x.png" width="28" height="28" alt="더보기" /><span class="dot-badge"></span></div>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Add to Home Screen 안내 배너 (iOS Safari 첫 방문자에게만 노출) -->
+  <div class="a2hs-banner" id="a2hsBanner" role="dialog" aria-label="홈 화면에 추가 안내">
+    <div class="a2hs-text">
+      <strong>앱처럼 전체 화면으로 보기</strong>
+      <span>하단
+        <svg class="a2hs-share" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path d="M12 3v12M12 3l-4 4M12 3l4 4" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+          <path d="M6 12v7a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-7" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        공유 → 홈 화면에 추가
+      </span>
+    </div>
+    <button class="a2hs-close" type="button" aria-label="닫기" id="a2hsClose">&times;</button>
+  </div>
+
+  <script>
+    /* ================================================================
+     * HOME SCREEN — 컴포넌트 시스템
+     * ================================================================
+     * 목적: 홈 화면 UI를 컴포넌트 단위로 구조화해 AI 협업 및
+     *       디자인 시스템 맥락 전달의 정확성·효율성을 높임.
+     *
+     * 사용법:
+     *   1) HOME_COMPONENTS 배열에서 컴포넌트 순서·데이터 수정
+     *   2) HomeComponents 객체에서 각 컴포넌트 렌더 함수 정의
+     *   3) 새 컴포넌트 추가: HomeComponents에 render 함수 추가 후
+     *      HOME_COMPONENTS 배열에 { type, props } 항목 삽입
+     * ================================================================ */
+
+    /* ── 컴포넌트 데이터 설정 ──────────────────────────────────────
+       HOME_COMPONENTS 배열 순서 = 화면 렌더 순서.
+       type: HomeComponents의 키 이름과 일치해야 함.
+       props: 각 컴포넌트 render 함수의 인자.             */
+    var HOME_COMPONENTS = [
+
+      /* ① PayStrip — Figma Pay_Component 3982:180344 */
+      {
+        type: 'PayStrip',
+        props: {
+          amount: '53,000원',
+          buttons: [
+            { label: '송금' },
+            { label: '자산' },
+            { label: '결제', icon: 'icons/home/ico_pay_barcode.png' }
+          ]
+        }
+      },
+
+      /* ② ServiceShortcut — Figma 3986:1009 (3 pages × 12 cells) */
+      {
+        type: 'ServiceShortcut',
+        props: {
+          pages: [
+            {
+              ariaLabel: '페이지 1/3',
+              cells: [
+                { icon: 'icons/home/svc_gift.png',        label: '선물하기',    badge: true },
+                { icon: 'icons/home/svc_received.png',    label: '받은선물' },
+                { icon: 'icons/home/svc_tokdeal.png',     label: '톡딜' },
+                { icon: 'icons/home/svc_emoticon.png',    label: '이모티콘' },
+                { icon: 'icons/home/svc_live.png',        label: '라이브쇼핑' },
+                { icon: 'icons/home/svc_makers.png',      label: '메이커스' },
+                { icon: 'icons/home/svc_friends.png',     label: '프렌즈' },
+                { icon: 'icons/home/svc_game.png',        label: '게임' },
+                { icon: 'icons/home/svc_idcard.png',      label: '모바일신분증' },
+                { icon: 'icons/home/svc_talkcloud.png',   label: '톡클라우드' },
+                { icon: 'icons/home/svc_calendar.png',    label: '캘린더' },
+                { icon: 'icons/home/svc_reservation.png', label: '예약하기' }
+              ]
+            },
+            {
+              ariaLabel: '페이지 2/3',
+              cells: [
+                { icon: 'icons/home/svc_order.png',        label: '주문하기' },
+                { icon: 'icons/home/svc_simplepurchase.png',label: '간편구매' },
+                { icon: 'icons/home/svc_map.png',          label: '카카오맵' },
+                { icon: 'icons/home/svc_together.png',     label: '같이가치' },
+                { icon: 'icons/home/svc_fashion.png',      label: '브랜드패션' },
+                { icon: 'icons/home/svc_mail.png',         label: '메일' },
+                { icon: 'icons/home/svc_story.png',        label: '카카오스토리' },
+                { icon: 'icons/home/svc_brunch.png',       label: '브런치' },
+                { icon: 'icons/home/svc_webtoon.png',      label: '카카오웹툰' },
+                { icon: 'icons/home/svc_page.png',         label: '페이지' },
+                { icon: 'icons/home/svc_receipt.png',      label: '카드영수증' },
+                { icon: 'icons/home/svc_bank.png',         label: '카카오뱅크' }
+              ]
+            },
+            {
+              ariaLabel: '페이지 3/3',
+              cells: [
+                { icon: 'icons/home/svc_melon.png',      label: '멜론' },
+                { icon: 'icons/home/svc_melonticket.png',label: '멜론티켓' },
+                { icon: 'icons/home/svc_golf.png',       label: '골프예약' },
+                { icon: 'icons/home/svc_pasta.png',      label: '파스타' },
+                { icon: 'icons/home/svc_kakaot.png',     label: '카카오 T' },
+                { icon: 'icons/home/svc_kakaonavi.png',  label: '카카오내비' },
+                { icon: 'icons/home/svc_kakaobus.png',   label: '카카오버스' }
+              ],
+              emptyCount: 5
+            }
+          ]
+        }
+      },
+
+      /* ③ HomeAd — Figma 5074:20173 (AOS / Moretab / AD) */
+      {
+        type: 'HomeAd',
+        props: {
+          image:    'images/home/ad_nike_golf.png',
+          imageAlt: '나이키 골프 Collection',
+          title:    '나이키 골프 Collection',
+          ctaLabel: '바로가기'
+        }
+      },
+
+      /* ④ GamePlay — Figma 4781:31742 */
+      {
+        type: 'GamePlay',
+        props: {
+          title: '게임플레이',
+          banner: {
+            icon:      'icons/home/ico_game_banner.png',
+            text:      '게임하며 모으는 쇼핑포인트!',
+            highlight: '게임플레이 OPEN'
+          },
+          games: [
+            { thumbClass: 't1', title: '쬬르디 구출 대작전',  playCount: '130만 플레이', playcountIcon: 'icons/home/ico_playcount.svg', badge: 'NEW' },
+            { thumbClass: 't2', title: '쬬르디 퍼즐탐험',      playCount: '80만 플레이',  playcountIcon: 'icons/home/ico_playcount.svg' },
+            { thumbClass: 't3', title: '쬬르디 쌍둥이 찾기',  playCount: '110만 플레이', playcountIcon: 'icons/home/ico_playcount.svg' }
+          ],
+          stats: [
+            { icon: 'icons/home/ico_ranking.png', label: '이번주 나의 랭킹',        value: '23위',    arrowIcon: 'icons/home/ico_arrow.png' },
+            { icon: 'icons/home/ico_point.png',   label: '이번 달 나의 쇼핑포인트', value: '5,123P',  arrowIcon: 'icons/home/ico_arrow.png' }
+          ]
+        }
+      },
+
+      /* ⑤ KakaoNow — Figma 6541:26335 (3×2 grid) */
+      {
+        type: 'KakaoNow',
+        props: {
+          title: '카카오 나우',
+          cards: [
+            { image: 'images/home/kakaonow_1.png', ariaLabel: '카카오나우 카드 1' },
+            { image: 'images/home/kakaonow_2.png', ariaLabel: '카카오나우 카드 2' },
+            { image: 'images/home/kakaonow_3.png', ariaLabel: '카카오나우 카드 3' },
+            { image: 'images/home/kakaonow_4.png', ariaLabel: '카카오나우 카드 4' },
+            { image: 'images/home/kakaonow_5.png', ariaLabel: '카카오나우 카드 5' },
+            { image: 'images/home/kakaonow_6.png', ariaLabel: '카카오나우 카드 6' }
+          ]
+        }
+      },
+
+      /* ⑥ WeatherCard — Figma 5775:3010 (HTML 구현) */
+      {
+        type: 'WeatherCard',
+        props: {
+          location:    '성남시 백현동',
+          temp:        '18°',
+          tempIcon:    'icons/home/ico_weather_sun.svg',
+          description: '어제보다 2°C 높아요.',
+          dustLabel:   '미세먼지',
+          dustLevel:   '나쁨',
+          locOvalIcon: 'icons/home/ico_weather_loc_oval.svg',
+          locIcon:     'icons/home/ico_weather_loc.svg'
+        }
+      },
+
+      /* ⑦ LocalAd — Figma 6541:26493 */
+      {
+        type: 'LocalAd',
+        props: {
+          image: 'images/home/local_ad_card.png',
+          alt:   '삼평동 주변 호텔 — 호텔 스카이파크 센트럴 서울 판교, 경기 성남시 분당구 판교역로 152'
+        }
+      }
+
+    ]; // END HOME_COMPONENTS
+
+
+    /* ── 컴포넌트 렌더 함수 ────────────────────────────────────────
+       각 함수는 props 객체를 받아 HTML 문자열을 반환.
+       CSS는 기존 <style> 블록의 컴포넌트별 규칙을 그대로 사용.  */
+    var HomeComponents = {
+
+      /* ① PayStrip
+         Spec: bg #fee500, radius 12, padding 18, justify-between
+         좌: pay_logo(40×14) + amount(Bold 15)
+         우: buttons(Medium 14), 구분선 0.5×13 */
+      PayStrip: function (p) {
+        var btns = p.buttons.map(function (b, i) {
+          var divider = i > 0 ? '<span class="divider" aria-hidden="true"></span>' : '';
+          var icon = b.icon
+            ? '<img class="pay-ico" src="' + b.icon + '" alt="" aria-hidden="true" />'
+            : '';
+          return divider + '<span>' + icon + b.label + '</span>';
+        }).join('');
+        return (
+          '<div class="pay-strip" role="group" aria-label="카카오페이 요약">' +
+            '<div class="pay-left">' +
+              '<span class="pay-logo" aria-label="카카오페이">' +
+                '<img src="icons/home/pay_logo.png" alt="pay" />' +
+              '</span>' +
+              '<span class="pay-amount">' + p.amount + '</span>' +
+            '</div>' +
+            '<div class="pay-btns">' + btns + '</div>' +
+          '</div>'
+        );
+      },
+
+      /* ② ServiceShortcut
+         Spec: white bg, radius 10, padding 12/12/16, flex column gap 8
+         pages: 4×3 grid scroll-snap, indicator 3dots */
+      ServiceShortcut: function (p) {
+        var pagesHtml = p.pages.map(function (page, pi) {
+          var cellsHtml = page.cells.map(function (c) {
+            var badge = c.badge ? '<span class="dot-badge" aria-hidden="true"></span>' : '';
+            return (
+              '<div class="service-cell">' +
+                '<span class="service-icon">' +
+                  '<img src="' + c.icon + '" alt="" width="38" height="38" aria-hidden="true" />' +
+                  badge +
+                '</span>' +
+                '<span class="service-label">' + c.label + '</span>' +
+              '</div>'
+            );
+          }).join('');
+          var emptyHtml = '';
+          if (page.emptyCount) {
+            for (var e = 0; e < page.emptyCount; e++) {
+              emptyHtml += '<div class="service-cell empty" aria-hidden="true"></div>';
+            }
+          }
+          return (
+            '<div class="service-page" data-page="' + pi + '" aria-label="' + page.ariaLabel + '">' +
+              cellsHtml + emptyHtml +
+            '</div>'
+          );
+        }).join('');
+        return (
+          '<div class="service-shortcut" aria-label="서비스 바로가기">' +
+            '<div class="service-pages" id="servicePages" role="region" aria-label="서비스 페이지" tabindex="0">' +
+              pagesHtml +
+            '</div>' +
+            '<div class="service-indicator" role="tablist" aria-label="페이지 인디케이터">' +
+              '<span class="dot active" role="tab" aria-selected="true"  data-goto="0"></span>' +
+              '<span class="dot"        role="tab" aria-selected="false" data-goto="1"></span>' +
+              '<span class="dot"        role="tab" aria-selected="false" data-goto="2"></span>' +
+            '</div>' +
+          '</div>'
+        );
+      },
+
+      /* ③ HomeAd
+         Spec: aspect-ratio 361/226, radius 12, shadow 0 0.5px 4px rgba(0,0,0,0.02)
+         img area: inset 0 0 45px 0 / AD badge top-right 8px
+         title bottom-left 10/13, CTA button bottom-right 10px */
+      HomeAd: function (p) {
+        return (
+          '<div class="home-ad" aria-label="광고">' +
+            '<div class="home-ad-img">' +
+              '<img class="home-ad-hero" src="' + p.image + '" alt="' + p.imageAlt + '" />' +
+            '</div>' +
+            '<span class="home-ad-badge" aria-label="광고 표시">AD</span>' +
+            '<div class="home-ad-title">' + p.title + '</div>' +
+            '<button type="button" class="home-ad-cta">' + p.ctaLabel + '</button>' +
+          '</div>'
+        );
+      },
+
+      /* ④ GamePlay
+         Spec: white bg, radius 10, padding 16, border rgba(0,0,0,0.04)
+         banner(22px icon + text), game-list 3col grid, divider, stat rows */
+      GamePlay: function (p) {
+        var gamesHtml = p.games.map(function (g, i) {
+          var badgeHtml = g.badge ? '<span class="game-badge">' + g.badge + '</span>' : '';
+          var isFirst = i === 0;
+          var isLast  = i === p.games.length - 1;
+          var ml = isFirst ? ' style="margin-left:16px' + (isLast ? ';margin-right:16px' : '') + '"' : (isLast ? ' style="margin-right:16px"' : '');
+          return (
+            '<div class="game-item"' + ml + '>' +
+              '<div class="game-thumb ' + g.thumbClass + '" role="img" aria-label="' + g.title + ' 썸네일">' +
+                badgeHtml +
+              '</div>' +
+              '<div class="game-title">' + g.title + '</div>' +
+              '<div class="game-play-count">' +
+                '<img src="' + g.playcountIcon + '" alt="" aria-hidden="true" />' +
+                g.playCount +
+              '</div>' +
+            '</div>'
+          );
+        }).join('');
+        var statsHtml = p.stats.map(function (s) {
+          return (
+            '<div class="game-stat">' +
+              '<span class="game-stat-ico" aria-hidden="true"><img src="' + s.icon + '" alt="" /></span>' +
+              '<span class="game-stat-label">' + s.label + '</span>' +
+              '<span class="game-stat-value">' +
+                s.value +
+                '<img src="' + s.arrowIcon + '" alt="" aria-hidden="true" />' +
+              '</span>' +
+            '</div>'
+          );
+        }).join('');
+        return (
+          '<div>' +
+            '<div class="home-subtitle">' + p.title + '</div>' +
+            '<div class="game-card">' +
+              '<div class="game-banner">' +
+                '<span class="game-banner-ico" aria-hidden="true"><img src="' + p.banner.icon + '" alt="" /></span>' +
+                '<span>' + p.banner.text + ' ' + p.banner.highlight + '</span>' +
+              '</div>' +
+              '<div class="game-list">' + gamesHtml + '</div>' +
+              '<div class="game-divider"></div>' +
+              '<div class="game-stats">' + statsHtml + '</div>' +
+            '</div>' +
+          '</div>'
+        );
+      },
+
+      /* ⑤ KakaoNow — ?v= 파라미터로 시안 전환 (기본: original 2x3)
+         v=a: 싱글 히어로 + 자동 롤링
+         v=b: 가로 스와이프 피크
+         v=c: 피처드 + 리스트
+         v=d: 정규화 2x3 그리드 */
+      KakaoNow: function (p) {
+        var variant = (function(){
+          try { return new URLSearchParams(location.search).get('v') || ''; }
+          catch(e) { return ''; }
+        })();
+
+        var header = '<div class="home-subtitle">' + p.title + '</div>';
+
+        // ---- 시안 A · Hero + dots ----
+        if (variant === 'a') {
+          var slidesHtml = p.cards.map(function(c,i){
+            return '<div class="kn-a-slide' + (i===0?' is-on':'') + '" ' +
+                   'style="background-image:url(\'' + c.image + '\')" ' +
+                   'role="img" aria-label="' + c.ariaLabel + '"></div>';
+          }).join('');
+          var dotsHtml = p.cards.map(function(_,i){
+            return '<button type="button" class="' + (i===0?'is-on':'') + '" aria-label="슬라이드 ' + (i+1) + '"></button>';
+          }).join('');
+          return (
+            '<div>' + header +
+              '<div class="kn-a-wrap">' +
+                '<div class="kn-a-stage" id="knAStage">' + slidesHtml + '</div>' +
+                '<div class="kn-a-dots" id="knADots">' + dotsHtml + '</div>' +
+              '</div>' +
+            '</div>'
+          );
+        }
+
+        // ---- 시안 B · Peek carousel ----
+        if (variant === 'b') {
+          var stripHtml = p.cards.map(function(c){
+            return '<div class="kn-b-card" style="background-image:url(\'' + c.image + '\')" ' +
+                   'role="img" aria-label="' + c.ariaLabel + '"></div>';
+          }).join('');
+          return (
+            '<div>' + header +
+              '<div class="kn-b-wrap">' +
+                '<div class="kn-b-track" id="knBTrack">' + stripHtml + '</div>' +
+                '<div class="kn-b-bar"><div class="kn-b-bar-fill" id="knBFill"></div></div>' +
+              '</div>' +
+            '</div>'
+          );
+        }
+
+        // ---- 시안 C · Featured + list ----
+        if (variant === 'c') {
+          var featured = p.cards[0];
+          var rest = p.cards.slice(1);
+          var listHtml = rest.map(function(c,i){
+            return (
+              '<li class="kn-c-item">' +
+                '<div class="kn-c-thumb" style="background-image:url(\'' + c.image + '\')"></div>' +
+                '<div class="kn-c-text">' +
+                  '<p class="kn-c-title">일이삼사오육칠팔구 십일이삼사오육칠팔</p>' +
+                  '<p class="kn-c-sub">일이삼사오육칠팔구십</p>' +
+                '</div>' +
+              '</li>'
+            );
+          }).join('');
+          return (
+            '<div>' + header +
+              '<div class="kn-c-featured" ' +
+                'style="background-image:url(\'' + featured.image + '\')" ' +
+                'role="img" aria-label="' + featured.ariaLabel + '"></div>' +
+              '<ul class="kn-c-list">' + listHtml + '</ul>' +
+            '</div>'
+          );
+        }
+
+        // ---- 시안 D · Normalized 2x3 ----
+        if (variant === 'd') {
+          var palettes = [
+            { bg: 'linear-gradient(180deg, #ECE6FF 0%, #ffffff 55%)', chip: '#D9CFFF', emoji: '💬' },
+            { bg: 'linear-gradient(180deg, #FFF3D6 0%, #ffffff 55%)', chip: '#FFE39A', emoji: '🎁' },
+            { bg: 'linear-gradient(180deg, #D6F5E6 0%, #ffffff 55%)', chip: '#A8E6C5', emoji: '🌱' },
+            { bg: 'linear-gradient(180deg, #FFE3E0 0%, #ffffff 55%)', chip: '#FFC1B8', emoji: '🎯' },
+            { bg: 'linear-gradient(180deg, #E0EEFF 0%, #ffffff 55%)', chip: '#B9D5FF', emoji: '📈' },
+            { bg: 'linear-gradient(180deg, #F0E6FF 0%, #ffffff 55%)', chip: '#D4BFFF', emoji: '✨' }
+          ];
+          var cardsHtml = p.cards.map(function(c,i){
+            var pal = palettes[i] || palettes[0];
+            return (
+              '<div class="kn-d-card" style="background:' + pal.bg + '">' +
+                '<div class="kn-d-top"><div class="kn-d-emoji" style="background:' + pal.chip + '">' + pal.emoji + '</div></div>' +
+                '<div class="kn-d-body">' +
+                  '<p class="kn-d-title">일이삼사오육칠팔구</p>' +
+                  '<p class="kn-d-sub">일이삼사오육칠팔</p>' +
+                '</div>' +
+              '</div>'
+            );
+          }).join('');
+          return (
+            '<div>' + header +
+              '<div class="kn-d-grid">' + cardsHtml + '</div>' +
+            '</div>'
+          );
+        }
+
+        // ---- default · 기존 2x3 그리드 ----
+        var cardsHtml = p.cards.map(function (c, i) {
+          var style = "background-image:url('" + c.image + "')";
+          return (
+            '<div class="kakaonow-card" style="' + style + '" role="img" aria-label="' + c.ariaLabel + '"></div>'
+          );
+        }).join('');
+        return (
+          '<div>' + header +
+            '<div class="kakaonow-grid">' + cardsHtml + '</div>' +
+          '</div>'
+        );
+      },
+
+      /* ⑥ WeatherCard — Figma 5775:3010 HTML 구현
+         Container: white bg, radius 12, shadow, padding 16, flex row
+         좌: wc-info(위치명 + 날씨행) / 우: wc-loc-btn(28×28) */
+      WeatherCard: function (p) {
+        return (
+          '<div class="weather-card">' +
+            '<div class="wc-info">' +
+              '<div class="wc-location">' + p.location + '</div>' +
+              '<div class="wc-weather-row">' +
+                '<div class="wc-current">' +
+                  '<img class="wc-ico" src="' + p.tempIcon + '" alt="" aria-hidden="true" />' +
+                  '<span class="wc-temp">' + p.temp + '</span>' +
+                '</div>' +
+                '<div class="wc-desc">' +
+                  '<p class="wc-desc-line1">' + p.description + '</p>' +
+                  '<p class="wc-desc-dust">' + p.dustLabel + '</p>' +
+                  '<p class="wc-desc-level">' + p.dustLevel + '</p>' +
+                '</div>' +
+              '</div>' +
+            '</div>' +
+            '<button type="button" class="wc-loc-btn" aria-label="위치 변경">' +
+              '<img class="wc-loc-oval" src="' + p.locOvalIcon + '" alt="" aria-hidden="true" />' +
+              '<img class="wc-loc-ico" src="' + p.locIcon + '" alt="" aria-hidden="true" />' +
+            '</button>' +
+          '</div>'
+        );
+      },
+
+      /* ⑦ LocalAd
+         Spec: white bg, radius 10, PNG 3x 풀 카드 이미지 */
+      LocalAd: function (p) {
+        return (
+          '<div class="local-ad">' +
+            '<img src="' + p.image + '" alt="' + p.alt + '" />' +
+          '</div>'
+        );
+      }
+
+    }; // END HomeComponents
+
+
+    /* ── 렌더링 실행 ─────────────────────────────────────────────
+       HOME_COMPONENTS 배열을 순회하며 각 컴포넌트를 #homeScreen에 주입.
+       이 스크립트 블록은 기존 carousel/scroll JS보다 먼저 실행되어
+       #servicePages, .service-indicator 등 DOM이 미리 준비됨.   */
+    (function () {
+      var el = document.getElementById('homeScreen');
+      if (!el) return;
+      el.innerHTML = HOME_COMPONENTS.map(function (item) {
+        var render = HomeComponents[item.type];
+        if (!render) {
+          console.warn('[HomeComponents] Unknown type:', item.type);
+          return '';
+        }
+        return render(item.props);
+      }).join('\n');
+    })();
+  </script>
+
+  <script>
+    /* 칩 클릭 → 화면 전환 (홈 ↔ 발견)
+       - chip-bar의 각 .chip에 data-screen을 부여하고 클릭 시 해당 .screen[data-screen=...]을 활성화.
+       - 현재 구현된 화면: '홈', '발견'. 지갑/게임은 자리만 잡아두고 클릭해도 화면 전환은 하지 않음.
+       - 전환 시 스크롤 최상단으로 리셋하고, .top 의 is-hidden 상태도 초기화.
+       - activate()를 window.MoreTab에 노출 → 더보기 탭 클릭 �핸들러에서 재사용. */
+    (function () {
+      var chips = document.querySelectorAll('.chip-bar .chip');
+      if (!chips.length) return;
+
+      // 칩 텍스트 → data-screen 매핑 (구현된 화면만)
+      var SCREEN_BY_LABEL = { '홈': 'home', '지갑': 'wallet' };
+
+      chips.forEach(function (chip) {
+        var label = (chip.textContent || '').trim();
+        var key = SCREEN_BY_LABEL[label];
+        if (key) chip.setAttribute('data-screen', key);
+        chip.setAttribute('role', 'tab');
+      });
+
+      function activate(screenKey) {
+        // 칩 active 토글
+        chips.forEach(function (c) {
+          if (c.getAttribute('data-screen') === screenKey) c.classList.add('active');
+          else c.classList.remove('active');
+        });
+        // 화면 토글
+        var screens = document.querySelectorAll('.screen');
+        screens.forEach(function (s) {
+          if (s.getAttribute('data-screen') === screenKey) s.classList.add('is-active');
+          else s.classList.remove('is-active');
+        });
+        // 지갑칩 활성 시 bg-gradient 숨김
+        document.body.classList.toggle('wallet-active', screenKey === 'wallet');
+        // 스크롤 리셋 + 헤더 reveal
+        window.scrollTo({ top: 0, behavior: 'auto' });
+        var topEl = document.querySelector('.top');
+        if (topEl) {
+          topEl.classList.remove('is-hidden');
+          topEl.classList.remove('has-scroll');
+        }
+      }
+
+      chips.forEach(function (chip) {
+        chip.addEventListener('click', function () {
+          var key = chip.getAttribute('data-screen');
+          if (!key) return; // 지갑/게임은 화면 구현 전이므로 무시
+          if (chip.classList.contains('active')) return; // 이미 활성화된 칩은 스킵
+          activate(key);
+        });
+      });
+
+      // activate() 외부 노출 — 더보기 탭 클릭 핸들러에서 사용
+      window.MoreTab = window.MoreTab || {};
+      window.MoreTab.activate = activate;
+      window.MoreTab.getActiveScreen = function () {
+        var active = document.querySelector('.screen.is-active');
+        return active ? active.getAttribute('data-screen') : null;
+      };
+    })();
+
+    /* 더보기 탭 클릭 인터랙션
+       - 스크롤 중(scrollY > 0) : 최상단으로 smooth 스크롤
+       - 이미 최상단(scrollY === 0) : 홈↔발견 칩 스위칭 */
+    (function () {
+      var moreTab = document.querySelector('.tab.more');
+      if (!moreTab) return;
+
+      moreTab.addEventListener('click', function () {
+        if ((window.scrollY || window.pageYOffset || 0) > 0) {
+          // 스크롤 위치가 있으면 최상단으로 이동
+          window.scrollTo({ top: 0, behavior: 'smooth' });
+        } else {
+          // 이미 최상단이면 홈↔지갑 토글
+          var mt = window.MoreTab;
+          if (!mt) return;
+          var current = mt.getActiveScreen();
+          var next = current === 'home' ? 'wallet' : 'home';
+          mt.activate(next);
+        }
+      });
+    })();
+
+    /* 상단 헤더(.top)의 스크롤 연동 인터랙션
+       1) 아래로 스크롤 시작 → 위로 슬라이드 업(is-hidden 추가, 240ms)
+       2) 다시 위로 스크롤 → 슬라이드 다운(is-hidden 제거, 160ms)
+       3) 최상단이 아니면 chip-bar 하단에 스크롤 디바이더 라인 노출(has-scroll 추가)
+       - threshold로 미세한 떨림 방지
+       - rAF로 스크롤 이벤트 쓰로틀링 */
+    (function () {
+      var topEl = document.querySelector('.top');
+      if (!topEl) return;
+
+      var lastY = window.scrollY || window.pageYOffset || 0;
+      var ticking = false;
+      var threshold = 6;       // 방향 전환 인정 최소 이동 픽셀
+      var revealAt = 0;        // 최상단에 가까우면 무조건 노출
+
+      function update() {
+        ticking = false;
+        var y = window.scrollY || window.pageYOffset || 0;
+        var delta = y - lastY;
+
+        // 스크롤 디바이더: 최상단이 아니면 노출
+        if (y > 0) {
+          topEl.classList.add('has-scroll');
+        } else {
+          topEl.classList.remove('has-scroll');
+        }
+
+        // 최상단 근처에서는 헤더 항상 표시
+        if (y <= revealAt) {
+          topEl.classList.remove('is-hidden');
+          lastY = y;
+          return;
+        }
+
+        // 최하단 탄성(bounce) 감지: 바닥 근처면 노출 억제
+        var maxScroll = document.documentElement.scrollHeight - window.innerHeight;
+        var nearBottom = maxScroll > 0 && y >= maxScroll - 24;
+
+        if (delta > threshold) {
+          // 아래로 스크롤 → 숨김
+          topEl.classList.add('is-hidden');
+          lastY = y;
+        } else if (delta < -threshold && !nearBottom) {
+          // 위로 스크롤 → 노출 (단, 최하단 bounce 구간은 제외)
+          topEl.classList.remove('is-hidden');
+          lastY = y;
+        }
+      }
+
+      window.addEventListener('scroll', function () {
+        if (!ticking) {
+          window.requestAnimationFrame(update);
+          ticking = true;
+        }
+      }, { passive: true });
+    })();
+
+    /* Service Shortcut: 가로 스와이프 → 인디케이터 동기화
+       - scroll 이벤트로 현재 페이지 인덱스 계산 (Math.round)
+       - dot.active 토글 (CSS transition으로 14px ↔ 5px 보간)
+       - dot 클릭 시 해당 페이지로 scroll-snap (smooth) */
+    (function () {
+      var pagesEl = document.getElementById('servicePages');
+      if (!pagesEl) return;
+      var dots = document.querySelectorAll('.service-indicator .dot');
+      if (dots.length !== 3) return;
+
+      var ticking = false;
+      function update() {
+        var w = pagesEl.clientWidth;
+        if (!w) { ticking = false; return; }
+        var idx = Math.round(pagesEl.scrollLeft / w);
+        if (idx < 0) idx = 0;
+        if (idx > 2) idx = 2;
+        dots.forEach(function (d, i) {
+          var on = i === idx;
+          d.classList.toggle('active', on);
+          d.setAttribute('aria-selected', on ? 'true' : 'false');
+        });
+        ticking = false;
+      }
+
+      pagesEl.addEventListener('scroll', function () {
+        if (!ticking) {
+          window.requestAnimationFrame(update);
+          ticking = true;
+        }
+      }, { passive: true });
+
+      dots.forEach(function (d, i) {
+        d.addEventListener('click', function () {
+          var w = pagesEl.clientWidth;
+          pagesEl.scrollTo({ left: w * i, behavior: 'smooth' });
+        });
+      });
+
+      // 초기 인디케이터 정합 + 리사이즈 대응 (반응형 width 변경 시)
+      window.addEventListener('load', update);
+      window.addEventListener('resize', function () {
+        // 페이지 인덱스를 유지한 채 scrollLeft 재계산
+        var w = pagesEl.clientWidth;
+        var current = 0;
+        dots.forEach(function (d, i) { if (d.classList.contains('active')) current = i; });
+        pagesEl.scrollLeft = w * current;
+      });
+    })();
+
+    /* 카카오 나우 시안 A: 자동 롤링 (5초)
+       ?v=a 일 때만 활성화, 점 클릭으로 수동 이동 지원 */
+    (function () {
+      var stage = document.getElementById('knAStage');
+      if (!stage) return;
+      var slides = stage.querySelectorAll('.kn-a-slide');
+      var dots = document.querySelectorAll('#knADots button');
+      if (!slides.length || !dots.length) return;
+
+      var idx = 0;
+      var timer = null;
+
+      function go(next) {
+        slides[idx].classList.remove('is-on');
+        dots[idx].classList.remove('is-on');
+        idx = (next + slides.length) % slides.length;
+        slides[idx].classList.add('is-on');
+        dots[idx].classList.add('is-on');
+      }
+      function start() { timer = setInterval(function(){ go(idx + 1); }, 5000); }
+      function stop() { if (timer) { clearInterval(timer); timer = null; } }
+
+      dots.forEach(function(dot, i) {
+        dot.addEventListener('click', function () {
+          stop(); go(i); start();
+        });
+      });
+
+      // 탭 비활성화 시 일시 정지 (배터리 절약)
+      document.addEventListener('visibilitychange', function () {
+        if (document.hidden) stop(); else start();
+      });
+
+      start();
+    })();
+
+    /* 카카오 나우 시안 B: 스크롤 위치 → 인디케이터 bar fill */
+    (function () {
+      var track = document.getElementById('knBTrack');
+      var fill  = document.getElementById('knBFill');
+      if (!track || !fill) return;
+
+      var ticking = false;
+      function update() {
+        ticking = false;
+        var max = track.scrollWidth - track.clientWidth;
+        if (max <= 0) { fill.style.left = '0%'; fill.style.width = '100%'; return; }
+        var ratio = track.scrollLeft / max;
+        var visibleRatio = track.clientWidth / track.scrollWidth;
+        var w = Math.max(visibleRatio * 100, 20);
+        var available = 100 - w;
+        fill.style.width = w + '%';
+        fill.style.left = (ratio * available) + '%';
+      }
+      track.addEventListener('scroll', function () {
+        if (!ticking) { window.requestAnimationFrame(update); ticking = true; }
+      }, { passive: true });
+      window.addEventListener('load', update);
+      window.addEventListener('resize', update);
+      update();
+    })();
+
+    /* 시안 배지 표시 (?v= 파라미터가 있으면 하단에 배지 출력) */
+    (function () {
+      try {
+        var v = new URLSearchParams(location.search).get('v');
+        if (!v) return;
+        var labels = {
+          'a': '시안 A · 싱글 히어로 롤링',
+          'b': '시안 B · 가로 스와이프 피크',
+          'c': '시안 C · 피처드 + 리스트',
+          'd': '시안 D · 정규화 2×3 그리드'
+        };
+        var text = labels[v];
+        if (!text) return;
+        var badge = document.createElement('div');
+        badge.className = 'kn-variant-badge';
+        badge.textContent = text;
+        document.body.appendChild(badge);
+      } catch (e) {}
+    })();
+
+    /* PWA standalone 모드 감지 → <html data-standalone="true"> 설정
+       @media (display-mode: standalone) CSS와 이중 분기 */
+    (function () {
+      var isStandalone =
+        window.matchMedia('(display-mode: standalone)').matches ||
+        window.navigator.standalone === true;
+      if (isStandalone) {
+        document.documentElement.setAttribute('data-standalone', 'true');
+      }
+    })();
+
+    /* Add to Home Screen 안내
+       - iOS Safari에서만(비-standalone 상태) 노출
+       - 사용자가 ×로 닫으면 sessionStorage에 기록 → 같은 세션 내 재노출 방지
+       - 이미 standalone으로 띄웠거나, iOS가 아닌 환경에서는 노출 안 함 */
+    (function () {
+      var ua = navigator.userAgent || '';
+      var isIOS = /iphone|ipad|ipod/i.test(ua);
+      var isStandalone =
+        window.matchMedia('(display-mode: standalone)').matches ||
+        window.navigator.standalone === true;
+      var dismissed = false;
+      try { dismissed = sessionStorage.getItem('a2hs_dismissed') === '1'; } catch (e) {}
+
+      if (!isIOS || isStandalone || dismissed) return;
+
+      var banner = document.getElementById('a2hsBanner');
+      var closeBtn = document.getElementById('a2hsClose');
+      if (!banner || !closeBtn) return;
+
+      // 첫 렌더 이후 약간 딜레이 주고 스르륵 등장
+      banner.style.display = 'flex';
+      setTimeout(function () {
+        banner.classList.add('is-visible');
+      }, 700);
+
+      closeBtn.addEventListener('click', function () {
+        banner.classList.remove('is-visible');
+        try { sessionStorage.setItem('a2hs_dismissed', '1'); } catch (e) {}
+        setTimeout(function () {
+          banner.style.display = 'none';
+        }, 320);
+      });
+    })();
+  </script>
+</body>
+</html>
