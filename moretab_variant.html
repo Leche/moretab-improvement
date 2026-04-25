@@ -1351,15 +1351,6 @@
     content: ''; position: absolute; inset: 0;
     border: 0.5px solid rgba(0,0,0,0.08); border-radius: 12px; pointer-events: none;
   }
-  .kn-b-bar {
-    margin: 10px 16px 0; height: 2px; background: #eceef2; border-radius: 2px;
-    position: relative; overflow: hidden;
-  }
-  .kn-b-bar-fill {
-    position: absolute; left: 0; top: 0; bottom: 0; width: 30%;
-    background: #191919; border-radius: 2px;
-    transition: left 0.2s ease, width 0.2s ease;
-  }
 
   /* 시안 C · 피처드 + 리스트 */
   .kn-c-featured {
@@ -1979,7 +1970,6 @@
             '<div>' + header +
               '<div class="kn-b-wrap">' +
                 '<div class="kn-b-track" id="knBTrack">' + stripHtml + '</div>' +
-                '<div class="kn-b-bar"><div class="kn-b-bar-fill" id="knBFill"></div></div>' +
               '</div>' +
             '</div>'
           );
@@ -2336,32 +2326,6 @@
       });
 
       start();
-    })();
-
-    /* 카카오 나우 시안 B: 스크롤 위치 → 인디케이터 bar fill */
-    (function () {
-      var track = document.getElementById('knBTrack');
-      var fill  = document.getElementById('knBFill');
-      if (!track || !fill) return;
-
-      var ticking = false;
-      function update() {
-        ticking = false;
-        var max = track.scrollWidth - track.clientWidth;
-        if (max <= 0) { fill.style.left = '0%'; fill.style.width = '100%'; return; }
-        var ratio = track.scrollLeft / max;
-        var visibleRatio = track.clientWidth / track.scrollWidth;
-        var w = Math.max(visibleRatio * 100, 20);
-        var available = 100 - w;
-        fill.style.width = w + '%';
-        fill.style.left = (ratio * available) + '%';
-      }
-      track.addEventListener('scroll', function () {
-        if (!ticking) { window.requestAnimationFrame(update); ticking = true; }
-      }, { passive: true });
-      window.addEventListener('load', update);
-      window.addEventListener('resize', update);
-      update();
     })();
 
     /* PWA standalone 모드 감지 → <html data-standalone="true"> 설정
