@@ -1421,16 +1421,6 @@
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   }
 
-  /* 시안 라벨 (테스트용, 실제 배포에선 제거 가능) */
-  .kn-variant-badge {
-    position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%);
-    background: rgba(17,20,24,0.92); color: #fff;
-    font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
-    padding: 7px 14px; border-radius: 999px;
-    z-index: 9999; pointer-events: none;
-    box-shadow: 0 4px 16px rgba(0,0,0,0.2);
-  }
-
   /* --- 7) Weather (Figma 5775:3010 — HTML 구현)
      Container: white bg, radius 12, shadow 0 0.5px 4px rgba(0,0,0,0.02)
      padding 16, flex row items-center gap 16
@@ -2367,26 +2357,6 @@
       window.addEventListener('load', update);
       window.addEventListener('resize', update);
       update();
-    })();
-
-    /* 시안 배지 표시 (?v= 파라미터가 있으면 하단에 배지 출력) */
-    (function () {
-      try {
-        var v = new URLSearchParams(location.search).get('v');
-        if (!v) return;
-        var labels = {
-          'a': '시안 A · 싱글 히어로 롤링',
-          'b': '시안 B · 가로 스와이프 피크',
-          'c': '시안 C · 피처드 + 리스트',
-          'd': '시안 D · 정규화 2×3 그리드'
-        };
-        var text = labels[v];
-        if (!text) return;
-        var badge = document.createElement('div');
-        badge.className = 'kn-variant-badge';
-        badge.textContent = text;
-        document.body.appendChild(badge);
-      } catch (e) {}
     })();
 
     /* PWA standalone 모드 감지 → <html data-standalone="true"> 설정
