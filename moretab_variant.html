@@ -1332,10 +1332,15 @@
   /* 시안 B · 가로 스와이프 피크 */
   .kn-b-wrap { margin: 0 -16px; }
   .kn-b-track {
-    display: flex; gap: 10px; overflow-x: auto; scroll-snap-type: x mandatory;
-    padding: 0 16px 6px; -webkit-overflow-scrolling: touch; scrollbar-width: none;
+    display: flex; gap: 10px; overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    scroll-padding-left: 16px;          /* 첫 카드가 16px 들여 정렬되도록 snap 보정 */
+    padding: 0 16px 6px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
   }
-  .kn-b-track::-webkit-scrollbar { display: none; }
+  .kn-b-track::-webkit-scrollbar { display: none; width: 0; height: 0; }
   .kn-b-card {
     flex: 0 0 auto; width: 138px; aspect-ratio: 138/168;
     border-radius: 12px; overflow: hidden; position: relative;

@@ -163,15 +163,21 @@
        ========================================================================== */
     .ds-prop-stack {
       display: grid;
-      grid-template-rows: auto auto;     /* 1: 캡션, 2: 폰 */
+      grid-template-rows: auto auto;     /* 1: 캡션 (균일), 2: 폰 (각자 높이) */
       grid-auto-flow: column;
       grid-auto-columns: 393px;
       gap: 28px 32px;
       overflow-x: auto;
+      overflow-y: visible;
       scroll-snap-type: x proximity;
       -webkit-overflow-scrolling: touch;
 
-      /* viewport-edge breakout */
+      /* 모든 스크롤바 숨김 */
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+
+      /* viewport-edge breakout — 좌우 끝까지 채우되 padding/scroll-padding을 같이 줘서
+         첫 카드의 시각 좌표는 ds-section의 좌측과 일치 */
       width: 100vw;
       position: relative;
       left: calc(50% - 50vw);
@@ -179,25 +185,24 @@
       padding-bottom: 16px;
       padding-left: max(56px, calc((100vw - var(--ds-content-max)) / 2 + 56px));
       padding-right: max(56px, calc((100vw - var(--ds-content-max)) / 2 + 56px));
+      scroll-padding-left: max(56px, calc((100vw - var(--ds-content-max)) / 2 + 56px));
     }
-    .ds-prop-stack::-webkit-scrollbar { height: 8px; }
-    .ds-prop-stack::-webkit-scrollbar-thumb { background: var(--ds-border-strong); border-radius: 999px; }
-    .ds-prop-stack::-webkit-scrollbar-track { background: transparent; }
+    .ds-prop-stack::-webkit-scrollbar { display: none; width: 0; height: 0; }
     @media (max-width: 900px) {
       .ds-prop-stack {
         padding-left: 20px;
         padding-right: 20px;
+        scroll-padding-left: 20px;
         gap: 24px 20px;
       }
     }
 
     .ds-prop-row {
       display: grid;
-      grid-template-rows: subgrid;       /* 부모 row 트랙 상속 */
+      grid-template-rows: subgrid;       /* 부모 row 트랙 상속 — 캡션 줄만 통일 */
       grid-row: span 2;                   /* 한 컬럼이 두 행을 차지 */
       row-gap: 20px;
       scroll-snap-align: start;
-      width: 393px;
     }
     /* subgrid 미지원 브라우저: 폰 정렬은 풀리지만 레이아웃은 유지 */
     @supports not (grid-template-rows: subgrid) {
@@ -249,7 +254,8 @@
     }
     .ds-phone iframe {
       width: 100%; border: 0; display: block;
-      height: 2400px; /* 초기값 — postMessage로 콘텐츠 높이 수신 시 갱신 */
+      height: 1200px; /* 초기값 — postMessage 수신 시 시안별 콘텐츠 높이로 갱신 */
+      overflow: hidden;
     }
 
     /* ==========================================================================
@@ -403,7 +409,7 @@
           <a class="ds-prop-cta" href="moretab_variant.html" target="_blank" rel="noopener">전체 화면으로 열기</a>
         </div>
         <div class="ds-phone">
-          <iframe src="moretab_variant.html" title="현재 2x3 그리드" loading="lazy" scrolling="no"></iframe>
+          <iframe src="moretab_variant.html" title="현재 2x3 그리드" scrolling="no"></iframe>
         </div>
       </div>
 
@@ -418,7 +424,7 @@
           <a class="ds-prop-cta" href="moretab_variant.html?v=a" target="_blank" rel="noopener">전체 화면으로 열기</a>
         </div>
         <div class="ds-phone">
-          <iframe src="moretab_variant.html?v=a" title="시안 A" loading="lazy" scrolling="no"></iframe>
+          <iframe src="moretab_variant.html?v=a" title="시안 A" scrolling="no"></iframe>
         </div>
       </div>
 
@@ -434,7 +440,7 @@
           <a class="ds-prop-cta" href="moretab_variant.html?v=b" target="_blank" rel="noopener">전체 화면으로 열기</a>
         </div>
         <div class="ds-phone">
-          <iframe src="moretab_variant.html?v=b" title="시안 B" loading="lazy" scrolling="no"></iframe>
+          <iframe src="moretab_variant.html?v=b" title="시안 B" scrolling="no"></iframe>
         </div>
       </div>
 
@@ -449,7 +455,7 @@
           <a class="ds-prop-cta" href="moretab_variant.html?v=c" target="_blank" rel="noopener">전체 화면으로 열기</a>
         </div>
         <div class="ds-phone">
-          <iframe src="moretab_variant.html?v=c" title="시안 C" loading="lazy" scrolling="no"></iframe>
+          <iframe src="moretab_variant.html?v=c" title="시안 C" scrolling="no"></iframe>
         </div>
       </div>
 
@@ -465,7 +471,7 @@
           <a class="ds-prop-cta" href="moretab_variant.html?v=d" target="_blank" rel="noopener">전체 화면으로 열기</a>
         </div>
         <div class="ds-phone">
-          <iframe src="moretab_variant.html?v=d" title="시안 D" loading="lazy" scrolling="no"></iframe>
+          <iframe src="moretab_variant.html?v=d" title="시안 D" scrolling="no"></iframe>
         </div>
       </div>
 
@@ -524,7 +530,8 @@
 </main>
 
 <script>
-  /* iframe 콘텐츠 높이 수신 → 해당 iframe 높이를 갱신해 내부 스크롤 제거 */
+  /* iframe 콘텐츠 높이 수신 → 해당 iframe 높이를 시안별로 갱신.
+     subgrid에서 캡션 row만 통일되고 폰 row의 높이는 콘텐츠가 결정. */
   window.addEventListener('message', function (e) {
     var data = e && e.data;
     if (!data || data.type !== 'moretab-height' || !data.height) return;
@@ -536,6 +543,19 @@
       }
     }
   });
+
+  /* 가로 스크롤 위치 초기화 — 새로고침/뒤로가기 시 AS-IS가 ds-section X 좌표에 정렬되도록 */
+  (function () {
+    function resetScroll() {
+      var stack = document.querySelector('.ds-prop-stack');
+      if (stack) stack.scrollLeft = 0;
+    }
+    if ('scrollRestoration' in history) {
+      try { history.scrollRestoration = 'manual'; } catch (e) {}
+    }
+    document.addEventListener('DOMContentLoaded', resetScroll);
+    window.addEventListener('load', resetScroll);
+  })();
 </script>
 </body>
 </html>
