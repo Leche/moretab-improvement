@@ -20,19 +20,17 @@
       --ds-text-sub: #616161;
       --ds-text-caption: #999999;
       --ds-accent: #191919;
-      --ds-accent-on: #ffffff;
       --ds-point-red: #f04452;
       --ds-point-green: #00cd3c;
       --ds-point-blue: #2f7ff5;
+      --ds-kakao-yellow: #fee500;
       --ds-radius-sm: 4px;
       --ds-radius-md: 8px;
       --ds-radius-lg: 12px;
       --ds-radius-xl: 16px;
-      --ds-content-max: 1280px;
-      --ds-ease: cubic-bezier(0.22, 1, 0.36, 1);
+      --ds-content-max: 1120px;
     }
 
-    /* Reset */
     *, *::before, *::after { box-sizing: border-box; }
     html, body { margin: 0; padding: 0; }
     body {
@@ -46,26 +44,39 @@
     button { font-family: inherit; cursor: pointer; border: 0; background: none; padding: 0; }
 
     /* ==========================================================================
-       Layout shell
+       Layout
        ========================================================================== */
     .ds-main {
       max-width: var(--ds-content-max);
       margin: 0 auto;
       padding: 72px 56px 120px;
     }
-    @media (max-width: 900px) {
-      .ds-main { padding: 48px 16px 80px; }
+    @media (max-width: 900px) { .ds-main { padding: 48px 20px 80px; } }
+
+    .ds-divider {
+      border: 0; height: 1px; background: var(--ds-border); margin: 64px 0;
     }
 
     /* ==========================================================================
        Hero
        ========================================================================== */
     .ds-hero { padding: 0 0 56px; max-width: 860px; }
-    .ds-hero-eyebrow {
-      font-size: 12px; font-weight: 700; letter-spacing: 0.08em;
-      text-transform: uppercase; color: var(--ds-text-caption);
-      margin-bottom: 14px;
+
+    /* Figma badge (839:25697) — 'Design Test' 옐로우 뱃지 */
+    .ds-hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: var(--ds-kakao-yellow);
+      padding: 8px 16px;
+      border-radius: 12px;
+      margin-bottom: 18px;
+      font-family: 'Pretendard', sans-serif;
+      font-size: 24px;
+      font-weight: 600;
+      color: #ffffff;
+      line-height: 1;
+      letter-spacing: -0.005em;
     }
+
     .ds-hero-title {
       font-size: 44px; line-height: 1.2; font-weight: 800;
       margin: 0 0 18px; letter-spacing: -0.015em;
@@ -93,17 +104,14 @@
     @media (max-width: 900px) {
       .ds-hero-title { font-size: 30px; }
       .ds-hero-desc { font-size: 15px; }
-    }
-
-    /* Divider */
-    .ds-divider {
-      border: 0; height: 1px; background: var(--ds-border); margin: 48px 0;
+      .ds-hero-badge { font-size: 20px; padding: 7px 14px; border-radius: 10px; }
     }
 
     /* ==========================================================================
        Section
        ========================================================================== */
-    .ds-section { margin-bottom: 72px; }
+    .ds-section { margin-bottom: 88px; }
+    .ds-section:last-of-type { margin-bottom: 0; }
     .ds-section-title {
       font-size: 22px; font-weight: 700;
       letter-spacing: -0.02em; margin: 0 0 10px; color: var(--ds-text);
@@ -113,48 +121,45 @@
       margin: 0 0 28px; line-height: 1.65; max-width: 760px;
     }
     @media (max-width: 900px) {
-      .ds-section { margin-bottom: 56px; }
+      .ds-section { margin-bottom: 64px; }
       .ds-section-title { font-size: 19px; }
       .ds-section-desc { font-size: 14px; }
     }
 
     /* ==========================================================================
-       Problem diagnosis grid (Don't-style cards)
+       Diagnosis — 단순 리스트 형태
        ========================================================================== */
-    .ds-problem-grid {
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;
+    .ds-diag-list {
+      list-style: none; padding: 0; margin: 0;
+      border-top: 1px solid var(--ds-border);
     }
-    @media (max-width: 1000px) { .ds-problem-grid { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 560px)  { .ds-problem-grid { grid-template-columns: 1fr; } }
-    .ds-problem {
-      padding: 20px 22px;
-      background: rgba(244, 68, 82, 0.035);
-      border: 1px solid rgba(244, 68, 82, 0.1);
-      border-radius: var(--ds-radius-md);
+    .ds-diag-list li {
+      display: grid; grid-template-columns: 56px 1fr; gap: 24px;
+      padding: 22px 4px;
+      border-bottom: 1px solid var(--ds-border);
+      align-items: baseline;
     }
-    .ds-problem-label {
-      display: inline-flex; align-items: center; gap: 6px;
-      font-size: 11px; font-weight: 800; letter-spacing: 0.06em;
-      text-transform: uppercase; color: var(--ds-point-red);
-      margin-bottom: 10px;
+    @media (max-width: 600px) {
+      .ds-diag-list li { grid-template-columns: 40px 1fr; gap: 16px; padding: 18px 2px; }
     }
-    .ds-problem-label::before {
-      content: ''; width: 12px; height: 12px; border-radius: 50%;
-      background: var(--ds-point-red);
-      background-image: url("data:image/svg+xml;charset=UTF-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12'%3E%3Cpath d='M4.2 4.2l3.6 3.6M7.8 4.2l-3.6 3.6' stroke='white' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    .ds-diag-num {
+      font-size: 14px; font-weight: 700;
+      color: var(--ds-text-caption); letter-spacing: 0.04em;
+      font-feature-settings: "tnum";
     }
-    .ds-problem-title {
-      font-size: 15px; font-weight: 700; color: var(--ds-text);
-      margin: 0 0 6px; line-height: 1.35; letter-spacing: -0.01em;
+    .ds-diag-body { display: block; }
+    .ds-diag-title {
+      font-size: 17px; font-weight: 700; color: var(--ds-text);
+      letter-spacing: -0.01em; margin: 0 0 6px;
     }
-    .ds-problem-text {
-      font-size: 13.5px; color: var(--ds-text-sub);
-      margin: 0; line-height: 1.65;
+    .ds-diag-text {
+      font-size: 14.5px; color: var(--ds-text-sub);
+      margin: 0; line-height: 1.7;
     }
-    .ds-problem-text b { color: var(--ds-text); font-weight: 600; }
+    .ds-diag-text b { color: var(--ds-text); font-weight: 600; }
 
     /* Theory chip row */
-    .ds-chip-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 20px; }
+    .ds-chip-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 28px; }
     .ds-chip {
       font-size: 12px; font-weight: 500;
       color: var(--ds-text-sub);
@@ -165,23 +170,59 @@
     }
 
     /* ==========================================================================
-       Proposal comparison — mobile mock card grid
+       Proposals — 세로 스택 (한 시안당 한 행, 충분한 폭)
        ========================================================================== */
-    .ds-prop-grid {
-      display: grid; grid-template-columns: repeat(5, 1fr); gap: 20px;
-      align-items: start;
+    .ds-prop-stack {
+      display: flex; flex-direction: column; gap: 12px;
     }
-    @media (max-width: 1400px) { .ds-prop-grid { grid-template-columns: repeat(3, 1fr); } }
-    @media (max-width: 900px)  { .ds-prop-grid { grid-template-columns: repeat(2, 1fr); } }
-    @media (max-width: 600px)  { .ds-prop-grid { grid-template-columns: 1fr; } }
+    .ds-prop-row {
+      display: grid;
+      grid-template-columns: 360px 1fr;
+      gap: 48px;
+      align-items: start;
+      padding: 36px 0;
+      border-top: 1px solid var(--ds-border);
+    }
+    .ds-prop-row:last-child { border-bottom: 1px solid var(--ds-border); }
+    @media (max-width: 900px) {
+      .ds-prop-row { grid-template-columns: 1fr; gap: 24px; padding: 28px 0; }
+    }
 
-    .ds-prop { display: flex; flex-direction: column; gap: 14px; }
+    /* Frame */
+    .ds-phone {
+      position: relative; width: 100%; max-width: 360px;
+      aspect-ratio: 360/720;
+      border: 1px solid var(--ds-border);
+      border-radius: var(--ds-radius-xl);
+      overflow: hidden;
+      background: #fff;
+      box-shadow: 0 8px 28px rgba(18, 26, 50, 0.06);
+    }
+    .ds-phone iframe {
+      width: 100%; height: 100%; border: 0;
+      display: block;
+    }
+    .ds-phone-open {
+      position: absolute; right: 12px; top: 12px; z-index: 5;
+      background: rgba(17, 20, 24, 0.78); color: #fff;
+      font-size: 11px; font-weight: 600;
+      padding: 6px 11px; border-radius: 999px;
+      display: inline-flex; align-items: center; gap: 4px;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      transition: background 0.15s ease;
+    }
+    .ds-phone-open:hover { background: rgba(17, 20, 24, 0.92); }
+    .ds-phone-open::after { content: '↗'; font-size: 12px; line-height: 1; }
+
+    /* Caption */
+    .ds-prop-caption { padding: 4px 0 0; }
     .ds-prop-head {
-      display: flex; align-items: center; gap: 10px; min-height: 26px;
+      display: flex; align-items: center; gap: 10px; margin-bottom: 14px;
     }
     .ds-prop-tag {
       font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
-      padding: 3px 8px; border-radius: var(--ds-radius-sm);
+      padding: 3px 9px; border-radius: var(--ds-radius-sm);
       background: var(--ds-bg-alt); color: var(--ds-text);
       border: 1px solid var(--ds-border);
     }
@@ -198,72 +239,55 @@
       font-weight: 600; letter-spacing: 0.06em;
     }
     .ds-prop-title {
-      font-size: 16px; font-weight: 700; margin: 0;
-      letter-spacing: -0.01em; color: var(--ds-text);
+      font-size: 22px; font-weight: 800; margin: 0 0 6px;
+      letter-spacing: -0.015em; color: var(--ds-text);
     }
-
-    /* Mobile frame (iframe wrapper) */
-    .ds-phone {
-      position: relative; width: 100%; max-width: 360px; margin: 0 auto;
-      aspect-ratio: 360/720;
-      border: 1px solid var(--ds-border);
-      border-radius: var(--ds-radius-xl);
-      overflow: hidden;
-      background: #fff;
-      box-shadow: 0 6px 22px rgba(18, 26, 50, 0.06);
-    }
-    .ds-phone iframe {
-      width: 100%; height: 100%; border: 0;
-      display: block;
-    }
-    .ds-phone-open {
-      position: absolute; right: 10px; top: 10px; z-index: 5;
-      background: rgba(17, 20, 24, 0.72); color: #fff;
-      font-size: 11px; font-weight: 600;
-      padding: 5px 9px; border-radius: 999px;
-      display: inline-flex; align-items: center; gap: 4px;
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      transition: background 0.15s ease;
-    }
-    .ds-phone-open:hover { background: rgba(17, 20, 24, 0.88); }
-    .ds-phone-open::after {
-      content: '↗'; font-size: 12px; line-height: 1;
-    }
-
-    /* Caption */
-    .ds-prop-caption { padding: 2px 2px 0; }
     .ds-prop-rationale-label {
-      font-size: 10.5px; font-weight: 700; letter-spacing: 0.08em;
+      display: inline-block;
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
       text-transform: uppercase; color: var(--ds-text-caption);
-      margin-bottom: 6px;
+      margin-bottom: 10px;
     }
     .ds-prop-rationale {
-      font-size: 13.5px; color: var(--ds-text); line-height: 1.65;
-      margin: 0 0 14px;
+      font-size: 15px; color: var(--ds-text); line-height: 1.7;
+      margin: 0 0 18px; max-width: 560px;
     }
-    .ds-prop-rationale b { font-weight: 600; }
-    .ds-prop-list { list-style: none; padding: 0; margin: 0; }
-    .ds-prop-list li {
+    .ds-prop-rationale b { font-weight: 700; }
+
+    .ds-prop-meta {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      max-width: 560px;
+    }
+    @media (max-width: 600px) { .ds-prop-meta { grid-template-columns: 1fr; gap: 16px; } }
+    .ds-prop-meta-col { }
+    .ds-prop-meta-label {
+      font-size: 11px; font-weight: 700; letter-spacing: 0.08em;
+      text-transform: uppercase; color: var(--ds-text-caption);
+      margin-bottom: 10px;
+    }
+    .ds-prop-meta-list { list-style: none; padding: 0; margin: 0; }
+    .ds-prop-meta-list li {
       position: relative; padding-left: 18px;
-      font-size: 13px; line-height: 1.6; color: var(--ds-text);
-      margin-bottom: 4px;
+      font-size: 13.5px; line-height: 1.65; color: var(--ds-text);
+      margin-bottom: 6px;
     }
-    .ds-prop-list li.pro::before {
+    .ds-prop-meta-list li.pro::before  {
       content: '+'; position: absolute; left: 0; top: 0;
-      color: var(--ds-point-green); font-weight: 800;
+      color: var(--ds-point-green); font-weight: 800; font-size: 14px;
     }
-    .ds-prop-list li.con::before {
+    .ds-prop-meta-list li.con::before  {
       content: '−'; position: absolute; left: 0; top: 0;
-      color: var(--ds-point-red); font-weight: 800;
+      color: var(--ds-point-red); font-weight: 800; font-size: 16px;
     }
-    .ds-prop-list li.pol::before {
-      content: '●'; position: absolute; left: 1px; top: 4px;
+    .ds-prop-meta-list li.pol::before  {
+      content: '●'; position: absolute; left: 2px; top: 6px;
       color: var(--ds-point-blue); font-size: 8px;
     }
 
     /* ==========================================================================
-       Recommendation (Do/Dont style + roadmap steps)
+       Recommendation
        ========================================================================== */
     .ds-reco-grid {
       display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
@@ -312,10 +336,10 @@
       width: 4px; height: 4px; border-radius: 50%; background: currentColor; opacity: 0.35;
     }
 
-    /* Roadmap table */
-    .ds-roadmap { margin-top: 28px; border-top: 1px solid var(--ds-border); }
+    /* Roadmap */
+    .ds-roadmap { margin-top: 32px; border-top: 1px solid var(--ds-border); }
     .ds-roadmap-row {
-      display: grid; grid-template-columns: 140px 1fr;
+      display: grid; grid-template-columns: 160px 1fr;
       padding: 18px 0; border-bottom: 1px solid var(--ds-border);
       gap: 24px; align-items: start;
     }
@@ -331,33 +355,6 @@
       font-size: 14.5px; color: var(--ds-text); line-height: 1.7; margin: 0;
     }
     .ds-roadmap-text em { color: var(--ds-text-sub); font-style: normal; }
-
-    /* ==========================================================================
-       Link footer
-       ========================================================================== */
-    .ds-related {
-      margin-top: 64px; padding-top: 32px;
-      border-top: 1px solid var(--ds-border);
-      display: grid; grid-template-columns: 1fr 1fr; gap: 12px;
-    }
-    @media (max-width: 600px) { .ds-related { grid-template-columns: 1fr; } }
-    .ds-related a {
-      display: block; padding: 20px 24px;
-      border: 1px solid var(--ds-border);
-      border-radius: var(--ds-radius-md);
-      transition: background .15s ease, border-color .15s ease, transform 0.15s ease;
-    }
-    .ds-related a:hover {
-      background: var(--ds-bg-alt);
-      border-color: var(--ds-border-strong);
-    }
-    .ds-related-eyebrow {
-      font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
-      text-transform: uppercase; color: var(--ds-text-caption);
-      margin-bottom: 8px;
-    }
-    .ds-related-title { font-size: 15px; font-weight: 700; color: var(--ds-text); margin: 0 0 4px; }
-    .ds-related-desc { font-size: 13px; color: var(--ds-text-sub); margin: 0; }
   </style>
 </head>
 <body>
@@ -365,7 +362,7 @@
 
   <!-- ================== HERO ================== -->
   <section class="ds-hero">
-    <div class="ds-hero-eyebrow">MORE TAB · KAKAO NOW SECTION</div>
+    <div class="ds-hero-badge">Design Test</div>
     <h1 class="ds-hero-title">카카오 나우 섹션 UX 개선 제안</h1>
     <p class="ds-hero-desc">
       배너 수를 2 → 4 → 6으로 늘리면 노출 기회도 늘어난다는 조직 내 직관은 사용자 행동과 반대 방향입니다.
@@ -385,31 +382,39 @@
   <section class="ds-section">
     <h2 class="ds-section-title">문제 진단</h2>
     <p class="ds-section-desc">
-      현재 2×3 그리드는 단순히 "공간을 많이 차지한다"의 문제가 아닙니다. 구조·시각·지표·의사결정의 네 축에서 동시에 무너지고 있습니다.
+      현재 2×3 그리드는 단순히 공간 점유의 문제가 아닙니다. 구조·시각·지표·의사결정 네 축에서 동시에 무너지고 있습니다.
     </p>
 
-    <div class="ds-problem-grid">
-      <div class="ds-problem">
-        <div class="ds-problem-label">01 · Space Greed</div>
-        <h3 class="ds-problem-title">뷰포트 절반 가까이 점유</h3>
-        <p class="ds-problem-text">카드 aspect 175:204 × 6개가 <b>1 스크린의 약 45%</b>를 차지. 더보기탭의 "빠른 진입·탐색" 목적과 정면 충돌.</p>
-      </div>
-      <div class="ds-problem">
-        <div class="ds-problem-label">02 · Visual Noise</div>
-        <h3 class="ds-problem-title">배너가 서로 경쟁</h3>
-        <p class="ds-problem-text">각 배너가 배경색·타이포·일러스트 크기를 자유롭게 사용. 6개가 한 화면에서 경쟁하면 <b>섹션 전체가 "광고존"으로 인지</b>되어 건너뛰게 됨.</p>
-      </div>
-      <div class="ds-problem">
-        <div class="ds-problem-label">03 · CTR Dilution</div>
-        <h3 class="ds-problem-title">선택지 과다의 역설</h3>
-        <p class="ds-problem-text">6개 중 1개 클릭. 이론상 CTR 상한이 1/6로 분산. "특정 소재에서 튄다"는 현상은 <b>포맷이 아니라 콘텐츠 자체</b>가 드라이버임을 시사.</p>
-      </div>
-      <div class="ds-problem">
-        <div class="ds-problem-label">04 · Ego-driven IA</div>
-        <h3 class="ds-problem-title">사용자 가치 부재</h3>
-        <p class="ds-problem-text">사용자 가치가 아닌 내부 협상으로 슬롯 수가 결정됨. 지표 하락 추세는 이 정책의 <b>외부 검증 실패 신호</b>.</p>
-      </div>
-    </div>
+    <ol class="ds-diag-list">
+      <li>
+        <div class="ds-diag-num">01</div>
+        <div class="ds-diag-body">
+          <h3 class="ds-diag-title">뷰포트 절반 가까이 점유 (Space Greed)</h3>
+          <p class="ds-diag-text">카드 aspect 175:204 × 6개가 <b>1 스크린의 약 45%</b>를 차지. 더보기탭의 "빠른 진입·탐색" 목적과 정면 충돌.</p>
+        </div>
+      </li>
+      <li>
+        <div class="ds-diag-num">02</div>
+        <div class="ds-diag-body">
+          <h3 class="ds-diag-title">배너가 서로 경쟁한다 (Visual Noise)</h3>
+          <p class="ds-diag-text">각 배너가 배경색·타이포·일러스트 크기를 자유롭게 사용. 6개가 한 화면에서 경쟁하면 <b>섹션 전체가 "광고존"으로 인지</b>되어 건너뛰게 됨.</p>
+        </div>
+      </li>
+      <li>
+        <div class="ds-diag-num">03</div>
+        <div class="ds-diag-body">
+          <h3 class="ds-diag-title">선택지 과다의 역설 (CTR Dilution)</h3>
+          <p class="ds-diag-text">6개 중 1개 클릭. 이론상 CTR 상한이 1/6로 분산. "특정 소재에서 튄다"는 현상은 <b>포맷이 아니라 콘텐츠 자체</b>가 드라이버임을 시사.</p>
+        </div>
+      </li>
+      <li>
+        <div class="ds-diag-num">04</div>
+        <div class="ds-diag-body">
+          <h3 class="ds-diag-title">사용자 가치 부재 (Ego-driven IA)</h3>
+          <p class="ds-diag-text">사용자 가치가 아닌 내부 협상으로 슬롯 수가 결정됨. 지표 하락 추세는 이 정책의 <b>외부 검증 실패 신호</b>.</p>
+        </div>
+      </li>
+    </ol>
 
     <div class="ds-chip-row">
       <span class="ds-chip">Banner Blindness (Nielsen)</span>
@@ -426,125 +431,190 @@
   <section class="ds-section">
     <h2 class="ds-section-title">시안 비교</h2>
     <p class="ds-section-desc">
-      각 시안은 실제 더보기탭 전체 흐름에 적용된 상태로 아래에 라이브 렌더링되어 있습니다. 프레임을 스크롤해 섹션 전후의 컨텍스트까지 확인하세요.
-      섬네일 우상단의 ↗ 버튼으로 새 탭에서 전체 화면으로도 열 수 있습니다.
+      각 시안은 실제 더보기탭 전체 흐름에 적용되어 있습니다. 프레임을 스크롤해 섹션 전후 컨텍스트를 확인하거나,
+      프레임 우상단의 ↗ 버튼으로 새 탭에서 전체 화면으로 열 수 있습니다.
     </p>
 
-    <div class="ds-prop-grid">
+    <div class="ds-prop-stack">
 
       <!-- AS-IS -->
-      <div class="ds-prop">
-        <div class="ds-prop-head">
-          <span class="ds-prop-tag is-asis">AS-IS</span>
-          <span class="ds-prop-no">00</span>
-        </div>
-        <h3 class="ds-prop-title">현재 — 2×3 풀 그리드</h3>
+      <div class="ds-prop-row">
         <div class="ds-phone">
           <a class="ds-phone-open" href="moretab_variant.html" target="_blank" rel="noopener">열기</a>
-          <iframe src="moretab_variant.html#kakao-now-scroll" title="현재 2x3 그리드" loading="lazy"></iframe>
+          <iframe src="moretab_variant.html" title="현재 2x3 그리드" loading="lazy"></iframe>
         </div>
         <div class="ds-prop-caption">
+          <div class="ds-prop-head">
+            <span class="ds-prop-tag is-asis">AS-IS</span>
+            <span class="ds-prop-no">00</span>
+          </div>
+          <h3 class="ds-prop-title">현재 — 2×3 풀 그리드</h3>
           <div class="ds-prop-rationale-label">상태</div>
-          <p class="ds-prop-rationale">6개 슬롯 동등 노출. 세로 공간 과점유, 소재 디자인 비일관, 선택지 과다.</p>
-          <ul class="ds-prop-list">
-            <li class="con">세로 공간 과점유 (뷰포트 약 45%)</li>
-            <li class="con">배너 간 위계 없음 → banner blindness</li>
-            <li class="con">CTR 분산 / 지표 하락 추세</li>
-          </ul>
+          <p class="ds-prop-rationale">
+            6개 슬롯 동등 노출. 세로 공간 과점유, 소재 디자인 비일관, 선택지 과다.
+            현재 더보기탭의 카카오 나우 섹션이 어떻게 보이는지 비교 기준으로 확인하세요.
+          </p>
+          <div class="ds-prop-meta">
+            <div class="ds-prop-meta-col">
+              <div class="ds-prop-meta-label">한계</div>
+              <ul class="ds-prop-meta-list">
+                <li class="con">세로 공간 과점유 (뷰포트 약 45%)</li>
+                <li class="con">배너 간 위계 없음 → banner blindness</li>
+                <li class="con">CTR 분산 / 지표 하락 추세</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- 시안 A -->
-      <div class="ds-prop">
-        <div class="ds-prop-head">
-          <span class="ds-prop-tag">시안 A</span>
-          <span class="ds-prop-no">01</span>
-        </div>
-        <h3 class="ds-prop-title">싱글 히어로 + 자동 롤링</h3>
+      <div class="ds-prop-row">
         <div class="ds-phone">
           <a class="ds-phone-open" href="moretab_variant.html?v=a" target="_blank" rel="noopener">열기</a>
           <iframe src="moretab_variant.html?v=a" title="시안 A" loading="lazy"></iframe>
         </div>
         <div class="ds-prop-caption">
-          <div class="ds-prop-rationale-label">Peak-End / Attention</div>
-          <p class="ds-prop-rationale">한 순간 한 개의 배너만 집중 노출. 자동 롤링 5초 + 점 클릭으로 6개 모두 노출 기회 보장. <b>원래 포맷으로의 회귀 + 현대화</b>.</p>
-          <ul class="ds-prop-list">
-            <li class="pro">세로 공간 약 70% 축소</li>
-            <li class="pro">각 배너 최대 주목도 확보</li>
-            <li class="con">동시 노출 1개 → 일부 배너는 이탈 전 노출 0</li>
-            <li class="pol">"6개 슬롯 모두 보존, 순차 순환" 프레이밍</li>
-          </ul>
+          <div class="ds-prop-head">
+            <span class="ds-prop-tag">시안 A</span>
+            <span class="ds-prop-no">01</span>
+          </div>
+          <h3 class="ds-prop-title">싱글 히어로 + 자동 롤링</h3>
+          <div class="ds-prop-rationale-label">Peak-End / Attention Economy</div>
+          <p class="ds-prop-rationale">
+            한 순간 한 개의 배너만 집중 노출 — 주의 경제 원칙 준수. 자동 롤링 5초 + 점 클릭으로 6개 모두 노출 기회 보장.
+            <b>원래 포맷으로의 회귀를 현대화</b>한 형태이며, 각 배너가 스크린 전체를 차지해 최대 주목도를 확보합니다.
+          </p>
+          <div class="ds-prop-meta">
+            <div class="ds-prop-meta-col">
+              <div class="ds-prop-meta-label">강점</div>
+              <ul class="ds-prop-meta-list">
+                <li class="pro">세로 공간 약 70% 축소</li>
+                <li class="pro">각 배너 최대 주목도 확보</li>
+                <li class="pol">"6개 슬롯 보존, 순차 순환" 프레이밍 가능</li>
+              </ul>
+            </div>
+            <div class="ds-prop-meta-col">
+              <div class="ds-prop-meta-label">한계</div>
+              <ul class="ds-prop-meta-list">
+                <li class="con">동시 노출 1개 → 일부 배너는 이탈 전 노출 0</li>
+                <li class="con">자동 롤링은 "보지 않는다"는 banner blindness 누적 가능</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- 시안 B (RECOMMENDED) -->
-      <div class="ds-prop">
-        <div class="ds-prop-head">
-          <span class="ds-prop-tag is-rec">시안 B · 추천</span>
-          <span class="ds-prop-no">02</span>
-        </div>
-        <h3 class="ds-prop-title">가로 스와이프 피크 캐러셀</h3>
+      <div class="ds-prop-row">
         <div class="ds-phone">
           <a class="ds-phone-open" href="moretab_variant.html?v=b" target="_blank" rel="noopener">열기</a>
           <iframe src="moretab_variant.html?v=b" title="시안 B" loading="lazy"></iframe>
         </div>
         <div class="ds-prop-caption">
+          <div class="ds-prop-head">
+            <span class="ds-prop-tag is-rec">시안 B · 추천</span>
+            <span class="ds-prop-no">02</span>
+          </div>
+          <h3 class="ds-prop-title">가로 스와이프 피크 캐러셀</h3>
           <div class="ds-prop-rationale-label">Progressive Disclosure</div>
-          <p class="ds-prop-rationale">첫 화면에서 2.5개 카드 peek으로 "더 있음"을 암시 → <b>스와이프 어포던스</b> 확보. 세로 공간 1/3로 축소. Netflix·Toss·Spotify 등 친숙한 row 패턴.</p>
-          <ul class="ds-prop-list">
-            <li class="pro">세로 공간 약 65% 축소</li>
-            <li class="pro">6개 즉시 스캔 + 능동적 탐색</li>
-            <li class="pro">노출 순서로 소재 품질 조정 가능</li>
-            <li class="con">후순위 카드는 스와이프 없으면 노출 0</li>
-            <li class="pol">"6 슬롯 + 공간 절약" 양쪽 요구 동시 충족</li>
-          </ul>
+          <p class="ds-prop-rationale">
+            첫 화면에서 2.5개 카드가 peek되어 "더 있음"을 암시 → <b>스와이프 어포던스</b>를 시각적으로 제공.
+            세로 공간을 1/3로 축소하면서 6개 슬롯을 모두 보존합니다. Netflix·Toss·Spotify 등 사용자에게 친숙한 row 패턴이며,
+            노출 순서를 운영 정책으로 조정해 소재 품질 차이를 즉시 반영할 수 있습니다.
+          </p>
+          <div class="ds-prop-meta">
+            <div class="ds-prop-meta-col">
+              <div class="ds-prop-meta-label">강점</div>
+              <ul class="ds-prop-meta-list">
+                <li class="pro">세로 공간 약 65% 축소</li>
+                <li class="pro">6개 즉시 스캔 + 능동적 탐색</li>
+                <li class="pro">노출 순서로 소재 품질 조정 가능</li>
+                <li class="pol">"6 슬롯 + 공간 절약" 양쪽 요구 동시 충족</li>
+              </ul>
+            </div>
+            <div class="ds-prop-meta-col">
+              <div class="ds-prop-meta-label">한계</div>
+              <ul class="ds-prop-meta-list">
+                <li class="con">후순위 카드는 스와이프 없으면 노출 0</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- 시안 C -->
-      <div class="ds-prop">
-        <div class="ds-prop-head">
-          <span class="ds-prop-tag">시안 C</span>
-          <span class="ds-prop-no">03</span>
-        </div>
-        <h3 class="ds-prop-title">피처드 + 리스트 (1+5)</h3>
+      <div class="ds-prop-row">
         <div class="ds-phone">
           <a class="ds-phone-open" href="moretab_variant.html?v=c" target="_blank" rel="noopener">열기</a>
           <iframe src="moretab_variant.html?v=c" title="시안 C" loading="lazy"></iframe>
         </div>
         <div class="ds-prop-caption">
+          <div class="ds-prop-head">
+            <span class="ds-prop-tag">시안 C</span>
+            <span class="ds-prop-no">03</span>
+          </div>
+          <h3 class="ds-prop-title">피처드 + 리스트 (1+5)</h3>
           <div class="ds-prop-rationale-label">Visual Hierarchy</div>
-          <p class="ds-prop-rationale">1 히어로는 주목·감성, 5 리스트는 <b>텍스트 일관 포맷</b>으로 스캔성 확보. YouTube 홈·App Store Today의 패턴. 리스트가 "제각각 디자인" 문제를 구조적으로 차단.</p>
-          <ul class="ds-prop-list">
-            <li class="pro">위계 확보 → 첫 소재 집중 노출</li>
-            <li class="pro">리스트 포맷 강제 → 디자인 일관성</li>
-            <li class="con">5개 리스트는 비주얼 임팩트 손실</li>
-            <li class="pol">"6 슬롯 보존 + 위계" 타협안</li>
-          </ul>
+          <p class="ds-prop-rationale">
+            1 히어로는 주목·감성을 담당하고, 5 리스트는 <b>텍스트 일관 포맷</b>으로 스캔성을 확보합니다.
+            YouTube 홈·App Store Today에서 검증된 패턴으로, 리스트 포맷이 "제각각 디자인" 문제를 구조적으로 차단합니다.
+          </p>
+          <div class="ds-prop-meta">
+            <div class="ds-prop-meta-col">
+              <div class="ds-prop-meta-label">강점</div>
+              <ul class="ds-prop-meta-list">
+                <li class="pro">위계 확보 → 첫 소재 집중 노출</li>
+                <li class="pro">리스트 포맷 강제 → 디자인 일관성</li>
+                <li class="pol">"6 슬롯 보존 + 위계" 타협안</li>
+              </ul>
+            </div>
+            <div class="ds-prop-meta-col">
+              <div class="ds-prop-meta-label">한계</div>
+              <ul class="ds-prop-meta-list">
+                <li class="con">5개 리스트 항목은 비주얼 임팩트 손실</li>
+                <li class="con">상위/하위 슬롯 간 노출 격차 발생</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
 
       <!-- 시안 D -->
-      <div class="ds-prop">
-        <div class="ds-prop-head">
-          <span class="ds-prop-tag">시안 D</span>
-          <span class="ds-prop-no">04</span>
-        </div>
-        <h3 class="ds-prop-title">2×3 유지 · 디자인 토큰 통일</h3>
+      <div class="ds-prop-row">
         <div class="ds-phone">
           <a class="ds-phone-open" href="moretab_variant.html?v=d" target="_blank" rel="noopener">열기</a>
           <iframe src="moretab_variant.html?v=d" title="시안 D" loading="lazy"></iframe>
         </div>
         <div class="ds-prop-caption">
+          <div class="ds-prop-head">
+            <span class="ds-prop-tag">시안 D</span>
+            <span class="ds-prop-no">04</span>
+          </div>
+          <h3 class="ds-prop-title">2×3 유지 · 디자인 토큰 통일</h3>
           <div class="ds-prop-rationale-label">Design System Enforcement</div>
-          <p class="ds-prop-rationale">레이아웃은 유지하되 <b>카드 내부를 컴포넌트화</b>: 파스텔 배경 + 원형 아이콘 + 1줄 제목 + 1줄 서브. 최소 개입으로 가독성·일관성 확보.</p>
-          <ul class="ds-prop-list">
-            <li class="pro">최소 변경 → 이해관계자 저항 최소</li>
-            <li class="pro">디자인 토큰 강제 → 품질 통제</li>
-            <li class="pro">카드 비율 축소(aspect 168:132)로 공간 20%↓</li>
-            <li class="con">선택지 과다 문제는 남음</li>
-            <li class="pol">"슬롯·레이아웃 유지, 품질만 개선" 최안전</li>
-          </ul>
+          <p class="ds-prop-rationale">
+            레이아웃은 그대로 유지하되 <b>카드 내부를 컴포넌트화</b>합니다.
+            파스텔 배경 + 원형 아이콘 + 1줄 제목 + 1줄 서브의 양식을 강제해 가독성과 일관성을 확보하며, 카드 비율도 168:132로 줄여 공간을 약 20% 절감합니다.
+            가장 적은 변경으로 가장 안전하게 진행할 수 있는 안입니다.
+          </p>
+          <div class="ds-prop-meta">
+            <div class="ds-prop-meta-col">
+              <div class="ds-prop-meta-label">강점</div>
+              <ul class="ds-prop-meta-list">
+                <li class="pro">최소 변경 → 이해관계자 저항 최소</li>
+                <li class="pro">디자인 토큰 강제 → 품질 통제</li>
+                <li class="pro">공간 약 20% 절감</li>
+                <li class="pol">"슬롯·레이아웃 유지, 품질만 개선" 최안전</li>
+              </ul>
+            </div>
+            <div class="ds-prop-meta-col">
+              <div class="ds-prop-meta-label">한계</div>
+              <ul class="ds-prop-meta-list">
+                <li class="con">선택지 과다 문제는 그대로 남음</li>
+                <li class="con">공간 절감 폭이 다른 시안 대비 작음</li>
+              </ul>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -565,18 +635,17 @@
         <h4 class="ds-guide-title">DO</h4>
         <ul class="ds-guide-list">
           <li>시안 B(피크 캐러셀)를 단기 적용 — "6 슬롯 보존 + 공간 절감 + 탐색 어포던스" 3조건 동시 충족</li>
-          <li>소재 디자인 가이드 1.0 제정 — 배경 이미지 위 텍스트 금지, 타이포·여백 토큰 강제</li>
           <li>포지션별 CTR·스와이프율 A/B — 슬롯 6개의 필요성을 데이터로 재검증</li>
           <li>피처드 슬롯 1개를 개인화 추천으로 전환 — 사용자 행동 기반 소재 매칭</li>
+          <li>지표 회복 시점 이후 슬롯 수 재협상의 데이터 근거 확보</li>
         </ul>
       </div>
       <div class="ds-guide ds-guide--dont">
         <h4 class="ds-guide-title">DON'T</h4>
         <ul class="ds-guide-list">
           <li>슬롯을 7, 8개로 계속 늘리는 것 — 지표 하락 가속만 초래</li>
-          <li>배너 추가를 사전 데이터 검증 없이 승인하는 프로세스</li>
-          <li>배경 이미지 위에 본문 텍스트를 새겨 넣는 배너 소재</li>
           <li>"6개 전부 동등" 레이아웃 — 위계 없이 모두가 광고로 인지됨</li>
+          <li>포맷 변경만으로 해결되리라 가정하는 것 — 콘텐츠 품질이 동시 작업되어야 함</li>
         </ul>
       </div>
     </div>
@@ -584,7 +653,7 @@
     <div class="ds-roadmap">
       <div class="ds-roadmap-row">
         <div class="ds-roadmap-step"><b>STEP 1</b> · 긴급 · 2주</div>
-        <p class="ds-roadmap-text">시안 B 적용 + 소재 디자인 가이드 1.0 배포. <em>원본 지면 대비 세로 공간 65% 절감, 슬롯 수는 유지.</em></p>
+        <p class="ds-roadmap-text">시안 B 적용 + 소재 운영 가이드 정비. <em>원본 지면 대비 세로 공간 65% 절감, 슬롯 수는 유지.</em></p>
       </div>
       <div class="ds-roadmap-row">
         <div class="ds-roadmap-step"><b>STEP 2</b> · 측정 · 4주</div>
@@ -596,23 +665,9 @@
       </div>
       <div class="ds-roadmap-row">
         <div class="ds-roadmap-step"><b>STEP 4</b> · 제도화</div>
-        <p class="ds-roadmap-text">배너 추가는 <b>소재 품질 게이트</b> 통과 시에만 가능하도록 내부 프로세스 신설.</p>
+        <p class="ds-roadmap-text">지표 기반 슬롯 수 가이드라인 문서화. 변경 의사결정에 데이터 의무화.</p>
       </div>
     </div>
-  </section>
-
-  <!-- ================== RELATED ================== -->
-  <section class="ds-related">
-    <a href="moretab_variant.html" target="_blank" rel="noopener">
-      <div class="ds-related-eyebrow">LIVE MOCKUP</div>
-      <p class="ds-related-title">현재 더보기탭 (AS-IS)</p>
-      <p class="ds-related-desc">2×3 그리드가 적용된 실제 화면을 전체 스크롤로 확인</p>
-    </a>
-    <a href="https://leche.github.io/moretab-design-system-web-publishing/v2/index.html" target="_blank" rel="noopener">
-      <div class="ds-related-eyebrow">DESIGN SYSTEM</div>
-      <p class="ds-related-title">더보기탭 디자인 시스템 v2</p>
-      <p class="ds-related-desc">Foundation · Components · Patterns 토큰 문서</p>
-    </a>
   </section>
 
 </main>
