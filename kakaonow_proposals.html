@@ -155,26 +155,64 @@
     .ds-diag-text b { color: var(--ds-text); font-weight: 600; }
 
     /* ==========================================================================
-       Proposals — 세로 스택 (한 시안당 한 행, 충분한 폭)
+       Proposals — 가로 스크롤 / 캡션 상단 + 시안 하단
        ========================================================================== */
     .ds-prop-stack {
-      display: flex; flex-direction: column; gap: 12px;
+      display: flex; gap: 32px;
+      overflow-x: auto;
+      padding: 4px 56px 16px;
+      margin: 0 -56px;
+      scroll-snap-type: x proximity;
+      -webkit-overflow-scrolling: touch;
     }
-    .ds-prop-row {
-      display: grid;
-      grid-template-columns: 360px 1fr;
-      gap: 48px;
-      align-items: start;
-      padding: 36px 0;
-    }
+    .ds-prop-stack::-webkit-scrollbar { height: 8px; }
+    .ds-prop-stack::-webkit-scrollbar-thumb { background: var(--ds-border-strong); border-radius: 999px; }
+    .ds-prop-stack::-webkit-scrollbar-track { background: transparent; }
     @media (max-width: 900px) {
-      .ds-prop-row { grid-template-columns: 1fr; gap: 24px; padding: 28px 0; }
+      .ds-prop-stack { padding: 4px 20px 16px; margin: 0 -20px; gap: 20px; }
     }
 
-    /* Frame */
+    .ds-prop-row {
+      display: flex; flex-direction: column; gap: 20px;
+      flex: 0 0 320px;
+      scroll-snap-align: start;
+    }
+    @media (max-width: 900px) {
+      .ds-prop-row { flex: 0 0 280px; gap: 16px; }
+    }
+
+    /* Caption (시안 상단) */
+    .ds-prop-caption { display: flex; flex-direction: column; gap: 12px; }
+    .ds-prop-title {
+      font-size: 20px; font-weight: 800; margin: 0;
+      letter-spacing: -0.015em; color: var(--ds-text);
+    }
+    .ds-prop-rationale {
+      font-size: 14px; color: var(--ds-text-sub); line-height: 1.65;
+      margin: 0;
+    }
+    .ds-prop-rationale b { font-weight: 700; color: var(--ds-text); }
+
+    .ds-prop-cta {
+      display: inline-flex; align-items: center; gap: 6px;
+      align-self: flex-start;
+      padding: 8px 14px;
+      font-size: 13px; font-weight: 600;
+      color: var(--ds-text);
+      background: var(--ds-bg-alt);
+      border: 1px solid var(--ds-border);
+      border-radius: var(--ds-radius-md);
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .ds-prop-cta:hover {
+      background: #fff;
+      border-color: var(--ds-border-strong);
+    }
+    .ds-prop-cta::after { content: '↗'; font-size: 13px; line-height: 1; }
+
+    /* Frame — 콘텐츠 전체 노출(내부 스크롤 없음) */
     .ds-phone {
-      position: relative; width: 100%; max-width: 360px;
-      aspect-ratio: 360/720;
+      position: relative; width: 100%;
       border: 1px solid var(--ds-border);
       border-radius: var(--ds-radius-xl);
       overflow: hidden;
@@ -182,33 +220,9 @@
       box-shadow: 0 8px 28px rgba(18, 26, 50, 0.06);
     }
     .ds-phone iframe {
-      width: 100%; height: 100%; border: 0;
-      display: block;
+      width: 100%; border: 0; display: block;
+      height: 2400px; /* 초기값 — postMessage로 콘텐츠 높이 수신 시 갱신 */
     }
-    .ds-phone-open {
-      position: absolute; right: 12px; top: 12px; z-index: 5;
-      background: rgba(17, 20, 24, 0.78); color: #fff;
-      font-size: 11px; font-weight: 600;
-      padding: 6px 11px; border-radius: 999px;
-      display: inline-flex; align-items: center; gap: 4px;
-      backdrop-filter: blur(6px);
-      -webkit-backdrop-filter: blur(6px);
-      transition: background 0.15s ease;
-    }
-    .ds-phone-open:hover { background: rgba(17, 20, 24, 0.92); }
-    .ds-phone-open::after { content: '↗'; font-size: 12px; line-height: 1; }
-
-    /* Caption */
-    .ds-prop-caption { padding: 4px 0 0; }
-    .ds-prop-title {
-      font-size: 22px; font-weight: 800; margin: 0 0 12px;
-      letter-spacing: -0.015em; color: var(--ds-text);
-    }
-    .ds-prop-rationale {
-      font-size: 15px; color: var(--ds-text); line-height: 1.7;
-      margin: 0; max-width: 560px;
-    }
-    .ds-prop-rationale b { font-weight: 700; }
 
     /* ==========================================================================
        Recommendation
@@ -352,40 +366,36 @@
 
       <!-- AS-IS -->
       <div class="ds-prop-row">
-        <div class="ds-phone">
-          <a class="ds-phone-open" href="moretab_variant.html" target="_blank" rel="noopener">열기</a>
-          <iframe src="moretab_variant.html" title="현재 2x3 그리드" loading="lazy"></iframe>
-        </div>
         <div class="ds-prop-caption">
           <h3 class="ds-prop-title">AS-IS. 현재 — 2×3 풀 그리드</h3>
           <p class="ds-prop-rationale">
             6개 슬롯 동등 노출. 세로 공간 과점유, 소재 디자인 비일관, 선택지 과다.
             현재 더보기탭의 카카오 나우 섹션이 어떻게 보이는지 비교 기준으로 확인하세요.
           </p>
+          <a class="ds-prop-cta" href="moretab_variant.html" target="_blank" rel="noopener">전체 화면으로 열기</a>
+        </div>
+        <div class="ds-phone">
+          <iframe src="moretab_variant.html" title="현재 2x3 그리드" loading="lazy" scrolling="no"></iframe>
         </div>
       </div>
 
       <!-- 시안 A -->
       <div class="ds-prop-row">
-        <div class="ds-phone">
-          <a class="ds-phone-open" href="moretab_variant.html?v=a" target="_blank" rel="noopener">열기</a>
-          <iframe src="moretab_variant.html?v=a" title="시안 A" loading="lazy"></iframe>
-        </div>
         <div class="ds-prop-caption">
           <h3 class="ds-prop-title">A. 싱글 히어로 + 자동 롤링</h3>
           <p class="ds-prop-rationale">
             한 순간 한 개의 배너만 집중 노출 — 주의 경제 원칙 준수. 자동 롤링 5초 + 점 클릭으로 6개 모두 노출 기회 보장.
             <b>원래 포맷으로의 회귀를 현대화</b>한 형태이며, 각 배너가 스크린 전체를 차지해 최대 주목도를 확보합니다.
           </p>
+          <a class="ds-prop-cta" href="moretab_variant.html?v=a" target="_blank" rel="noopener">전체 화면으로 열기</a>
+        </div>
+        <div class="ds-phone">
+          <iframe src="moretab_variant.html?v=a" title="시안 A" loading="lazy" scrolling="no"></iframe>
         </div>
       </div>
 
       <!-- 시안 B -->
       <div class="ds-prop-row">
-        <div class="ds-phone">
-          <a class="ds-phone-open" href="moretab_variant.html?v=b" target="_blank" rel="noopener">열기</a>
-          <iframe src="moretab_variant.html?v=b" title="시안 B" loading="lazy"></iframe>
-        </div>
         <div class="ds-prop-caption">
           <h3 class="ds-prop-title">B. 가로 스와이프 피크 캐러셀</h3>
           <p class="ds-prop-rationale">
@@ -393,30 +403,30 @@
             세로 공간을 1/3로 축소하면서 6개 슬롯을 모두 보존합니다. Netflix·Toss·Spotify 등 사용자에게 친숙한 row 패턴이며,
             노출 순서를 운영 정책으로 조정해 소재 품질 차이를 즉시 반영할 수 있습니다.
           </p>
+          <a class="ds-prop-cta" href="moretab_variant.html?v=b" target="_blank" rel="noopener">전체 화면으로 열기</a>
+        </div>
+        <div class="ds-phone">
+          <iframe src="moretab_variant.html?v=b" title="시안 B" loading="lazy" scrolling="no"></iframe>
         </div>
       </div>
 
       <!-- 시안 C -->
       <div class="ds-prop-row">
-        <div class="ds-phone">
-          <a class="ds-phone-open" href="moretab_variant.html?v=c" target="_blank" rel="noopener">열기</a>
-          <iframe src="moretab_variant.html?v=c" title="시안 C" loading="lazy"></iframe>
-        </div>
         <div class="ds-prop-caption">
           <h3 class="ds-prop-title">C. 피처드 + 리스트 (1+5)</h3>
           <p class="ds-prop-rationale">
             1 히어로는 주목·감성을 담당하고, 5 리스트는 <b>텍스트 일관 포맷</b>으로 스캔성을 확보합니다.
             YouTube 홈·App Store Today에서 검증된 패턴으로, 리스트 포맷이 "제각각 디자인" 문제를 구조적으로 차단합니다.
           </p>
+          <a class="ds-prop-cta" href="moretab_variant.html?v=c" target="_blank" rel="noopener">전체 화면으로 열기</a>
+        </div>
+        <div class="ds-phone">
+          <iframe src="moretab_variant.html?v=c" title="시안 C" loading="lazy" scrolling="no"></iframe>
         </div>
       </div>
 
       <!-- 시안 D -->
       <div class="ds-prop-row">
-        <div class="ds-phone">
-          <a class="ds-phone-open" href="moretab_variant.html?v=d" target="_blank" rel="noopener">열기</a>
-          <iframe src="moretab_variant.html?v=d" title="시안 D" loading="lazy"></iframe>
-        </div>
         <div class="ds-prop-caption">
           <h3 class="ds-prop-title">D. 2×3 유지 · 디자인 토큰 통일</h3>
           <p class="ds-prop-rationale">
@@ -424,6 +434,10 @@
             파스텔 배경 + 원형 아이콘 + 1줄 제목 + 1줄 서브의 양식을 강제해 가독성과 일관성을 확보하며, 카드 비율도 168:132로 줄여 공간을 약 20% 절감합니다.
             가장 적은 변경으로 가장 안전하게 진행할 수 있는 안입니다.
           </p>
+          <a class="ds-prop-cta" href="moretab_variant.html?v=d" target="_blank" rel="noopener">전체 화면으로 열기</a>
+        </div>
+        <div class="ds-phone">
+          <iframe src="moretab_variant.html?v=d" title="시안 D" loading="lazy" scrolling="no"></iframe>
         </div>
       </div>
 
@@ -480,5 +494,20 @@
   </section>
 
 </main>
+
+<script>
+  /* iframe 콘텐츠 높이 수신 → 해당 iframe 높이를 갱신해 내부 스크롤 제거 */
+  window.addEventListener('message', function (e) {
+    var data = e && e.data;
+    if (!data || data.type !== 'moretab-height' || !data.height) return;
+    var frames = document.querySelectorAll('.ds-phone iframe');
+    for (var i = 0; i < frames.length; i++) {
+      if (frames[i].contentWindow === e.source) {
+        frames[i].style.height = data.height + 'px';
+        break;
+      }
+    }
+  });
+</script>
 </body>
 </html>

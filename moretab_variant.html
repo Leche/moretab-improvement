@@ -2433,6 +2433,40 @@
         }, 320);
       });
     })();
+
+    /* 부모 페이지(제안 페이지)에 콘텐츠 높이 전송 — iframe 내부 스크롤을 없애기 위함
+       - load + ResizeObserver + 짧은 디바운스로 안정 높이 송출
+       - 특정 origin이 아니어도 동작하도록 '*' 사용 (개인 도메인 한정 데모) */
+    (function () {
+      if (window.parent === window) return; // 직접 열렸을 때는 스킵
+      var lastH = 0;
+      var raf = null;
+      function send() {
+        var h = Math.max(
+          document.documentElement.scrollHeight,
+          document.body.scrollHeight
+        );
+        if (h !== lastH) {
+          lastH = h;
+          try {
+            window.parent.postMessage({ type: 'moretab-height', v: location.search, height: h }, '*');
+          } catch (e) {}
+        }
+      }
+      function schedule() {
+        if (raf) return;
+        raf = requestAnimationFrame(function () { raf = null; send(); });
+      }
+      window.addEventListener('load', schedule);
+      window.addEventListener('resize', schedule);
+      if (typeof ResizeObserver !== 'undefined') {
+        new ResizeObserver(schedule).observe(document.body);
+      }
+      // fallback: 1.5초 단위 재송출 (이미지 로딩 완료 등 늦은 변경 대응)
+      setTimeout(schedule, 300);
+      setTimeout(schedule, 1200);
+      setTimeout(schedule, 2500);
+    })();
   </script>
 </body>
 </html>
